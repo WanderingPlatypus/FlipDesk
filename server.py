@@ -15,7 +15,10 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
+import sys
 import threading
+import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -113,6 +116,44 @@ def clean(payload, partial=False):
     return out
 
 
+# ---------- self-update (when installed as a git clone) ----------
+def git(*args, timeout=90):
+    r = subprocess.run(["git", "-C", str(HERE), *args], capture_output=True, text=True, timeout=timeout)
+    return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def git_supported():
+    try:
+        return (HERE / ".git").exists() and git("rev-parse", "HEAD")[0] == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def version_info():
+    if not git_supported():
+        return {"supported": False}
+    _, out = git("log", "-1", "--format=%h|%cs|%s")
+    h, d, msg = (out.split("|", 2) + ["", ""])[:3]
+    return {"supported": True, "commit": h, "date": d, "message": msg}
+
+
+def pending_updates():
+    code, out = git("fetch", "--quiet")
+    if code:
+        raise RuntimeError("git fetch a échoué : " + out[-300:])
+    _, log = git("log", "--format=%h %cs %s", "HEAD..@{u}")
+    return [l for l in log.splitlines() if l.strip()]
+
+
+def restart_soon():
+    # Replace this process with a fresh one running the updated code (same PID,
+    # so it works under systemd or when launched by hand).
+    def go():
+        time.sleep(0.8)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    threading.Thread(target=go, daemon=True).start()
+
+
 def now():
     return datetime.now().isoformat(timespec="seconds")
 
@@ -186,6 +227,8 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/api/health":
             return self._send(200, {"ok": True})
+        if path == "/api/version":
+            return self._send(200, version_info())
         if path == "/api/items":
             with db() as c:
                 rows = c.execute("SELECT * FROM items ORDER BY COALESCE(NULLIF(sell_date,''), NULLIF(buy_date,''), created_at) DESC, id DESC").fetchall()
@@ -244,6 +287,22 @@ class Handler(BaseHTTPRequestHandler):
                                     list(item.values()))
                     r = c.execute("SELECT * FROM items WHERE id=?", (cur.lastrowid,)).fetchone()
                 return self._send(201, row_dict(r))
+            if path in ("/api/update/check", "/api/update"):
+                if not git_supported():
+                    return self._err(400, "Mise à jour automatique indisponible : FlipDesk n'est pas installé depuis git.")
+                try:
+                    pend = pending_updates()
+                    if path == "/api/update/check":
+                        return self._send(200, {"pending": pend, **version_info()})
+                    if not pend:
+                        return self._send(200, {"updated": False, "restarting": False})
+                    code, out = git("merge", "--ff-only", "@{u}")
+                    if code:
+                        return self._err(500, "git a échoué : " + out[-400:])
+                except (RuntimeError, subprocess.SubprocessError) as e:
+                    return self._err(500, str(e))
+                restart_soon()
+                return self._send(200, {"updated": True, "restarting": True, "applied": pend})
             if path == "/api/import":
                 items = data.get("items", data) if isinstance(data, dict) else data
                 replace = isinstance(data, dict) and data.get("replace")
