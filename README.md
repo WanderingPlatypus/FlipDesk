@@ -1,21 +1,22 @@
-# FlipDesk
+# FlipDesk v2
 
 Self-hosted tracker for what you buy and resell on Leboncoin, Vinted & co.
 One Python file + one HTML page, SQLite storage, **zero dependencies** (only `python3`).
 
 ## What it tracks
-- **Buy side:** platform, date, price paid, fees/shipping, parts/repair cost
-- **Sell side:** platform, date, sale price, seller fees, shipping you paid
-- **Status:** In stock → Listed (with asking price) → Sold / Kept
-- **Dashboard:** net profit, revenue, margin on cost, money spent, capital tied up in stock, average days to sell, profit per month (12-month chart), breakdown per selling platform. Filter by all time / this year / this month / last 30 days.
-- One-tap **"Vendu ✓"** button on unsold items (prefills today's date, the asking price and the platform)
-- **Status dropdown** on every item in the list
-- **Lots**: link an item to its origin purchase (searchable picker, or *+ Article du lot*); the lot's costs are shared (split by sale/asking price); *Pièces* status for items used as parts; Lots tab with each lot's result
-- CSV export (opens in Excel), JSON backup / restore
-- One-click server update from the ⋯ menu
-- Works on phone (add it to your home screen)
+FlipDesk v2 keeps **purchases** (Achats) and **sales** (Ventes / annonces) as separate records, **linked** together:
+- one purchase → several sales (a lot you split), several purchases → one sale (parts), or simply 1 ↔ 1
+- each purchase's cost is spread over its linked sales (by sale price, or asking price while listed), so every sale shows its real profit and every purchase shows what it brought back
+- 🏷️ **Ventes** view: listed / sold, the purchases each one came from, *Vendu ✓* in one click
+- 🛒 **Achats** view: in stock / resold / used / kept, what each purchase became, *➕ En vente* to create the linked listing
+- 💡 **link suggestions** when a sale and a purchase clearly look like the same thing (one click)
+- **Dashboard:** net profit, revenue, margin on linked sales, money spent, capital tied up (unsold purchases + listings), average days to sell, profit per month, per selling platform; period filter
+- CSV exports (sales with cost & profit, purchases), JSON backup / restore (v1 backups are converted on import)
+- One-click server update from the ⋯ menu; works on phone
 
-Profit = sale price − seller fees − shipping you paid − (buy price + buy fees + repair cost)
+Sale profit = sale price − seller fees − shipping you paid − repair costs − its share of the linked purchases
+
+**Upgrading from v1** is automatic: on first start, every v1 item becomes a purchase and/or a sale, linked together, and lots become links. Totals stay identical. The old table is kept in the database as `items_v1_backup`.
 
 ## Install on Proxmox (LXC, recommended)
 

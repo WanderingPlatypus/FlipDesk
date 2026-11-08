@@ -10,7 +10,7 @@
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--txt:#e7e9ee;--mut:#8b93a3;
-  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;--violet:#c4b5fd;
   --lbc:#ff6e14;--vinted:#09b1ba;--other:#a78bfa;--r:14px;
 }
 *{box-sizing:border-box}
@@ -18,17 +18,24 @@ html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-u
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--blue)}
 .wrap{max-width:1180px;margin:0 auto;padding:16px 16px calc(90px + env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em;margin-right:auto}
 .logo i{width:30px;height:30px;border-radius:9px;background:var(--green);display:grid;place-items:center}
+.logo sup{font-size:11px;font-weight:700;color:var(--green);border:1px solid #1d4d2e;border-radius:6px;padding:1px 5px}
 .btn{border:1px solid var(--line);background:var(--panel2);padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .btn:hover{border-color:#3a4150}
 .btn.primary{background:var(--green);border-color:var(--green);color:#06260f;font-weight:700}
+.btn.ghost{background:none}
 .btn.danger{color:var(--red)}
 .btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn.xs{padding:2px 8px;font-size:12px;border-radius:20px}
 .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
-.seg button{border:0;background:none;padding:6px 11px;border-radius:7px;cursor:pointer;color:var(--mut)}
+.seg button{border:0;background:none;padding:6px 11px;border-radius:7px;cursor:pointer;color:var(--mut);white-space:nowrap}
 .seg button.on{background:var(--panel2);color:var(--txt);box-shadow:0 0 0 1px var(--line)}
+.views{display:flex;gap:8px;margin:22px 0 10px}
+.views button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--mut);padding:10px 18px;border-radius:12px;cursor:pointer;font-weight:700;font-size:15.5px}
+.views button.on{color:var(--txt);border-color:#3a4150;background:var(--panel2)}
+.views button span{opacity:.6;font-weight:500;margin-left:4px}
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
 .kpi .l{color:var(--mut);font-size:12.5px}
@@ -37,59 +44,72 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wra
 .grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .card h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
-.pos{color:var(--green)}.neg{color:var(--red)}
+.pos{color:var(--green)}.neg{color:var(--red)}.mut{color:var(--mut)}
 .plat{display:grid;gap:10px}
 .prow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
 .dot{width:10px;height:10px;border-radius:50%}
 .bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;margin-top:4px}
 .bar>div{height:100%}
-.toolbar{display:flex;gap:8px;align-items:center;margin:18px 0 10px;flex-wrap:wrap}
+.hintbar{display:flex;align-items:center;gap:10px;background:#1d1a2e;border:1px solid #3b3157;border-radius:12px;padding:10px 14px;margin-top:10px;color:var(--violet)}
+.hintbar b{color:var(--txt)}
+.toolbar{display:flex;gap:8px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
 .toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
 .toolbar input{flex:1;min-width:160px}
 .list{display:grid;gap:8px}
-.item{display:grid;grid-template-columns:1fr 130px 130px 110px 92px;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer}
+.item{display:grid;grid-template-columns:1fr 120px 120px 104px 96px;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer}
 .item:hover{border-color:#3a4150}
 .item .n{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.item .meta{color:var(--mut);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.item .meta{color:var(--mut);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
 .item .c{font-variant-numeric:tabular-nums;font-size:14px}
 .item .c small{display:block;color:var(--mut);font-size:11.5px}
 .item .p{font-weight:750;text-align:right;font-variant-numeric:tabular-nums}
 .item .show-m{display:none}
-.tag{font-size:11.5px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
-.st-stock{color:var(--blue);border-color:#294466}.st-listed{color:var(--amber);border-color:#5a4415}
-.st-sold{color:var(--green);border-color:#1d4d2e}.st-kept{color:var(--mut)}.st-parts{color:#c084fc;border-color:#4b2a6b}
-.stsel{appearance:none;-webkit-appearance:none;font-size:11.5px;padding:2px 20px 2px 8px;border-radius:20px;border:1px solid var(--line);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b93a3'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer;font-weight:600}
-.stsel.st-stock{color:var(--blue)}.stsel.st-listed{color:var(--amber)}.stsel.st-sold{color:var(--green)}.stsel.st-kept{color:var(--mut)}.stsel.st-parts{color:#c084fc}
-.stsel option{color:var(--txt);background:var(--panel2)}
-.chip{display:inline-flex;align-items:center;gap:6px;background:#2a2340;color:#c4b5fd;border-radius:20px;padding:6px 6px 6px 12px;font-size:13px}
-.chip button{border:0;background:#3b3157;color:inherit;border-radius:50%;width:22px;height:22px;cursor:pointer}
-.kids{display:grid;gap:4px;margin-top:6px}.kids a{color:var(--txt);text-decoration:none;display:flex;justify-content:space-between;gap:8px;padding:6px 9px;border-radius:8px;background:var(--bg);border:1px solid var(--line);font-size:13px;cursor:pointer}
-.kids a:hover{border-color:#3a4150}
-.lottag{font-size:11.5px;padding:2px 7px;border-radius:20px;background:#2a2340;color:#c4b5fd;white-space:nowrap;cursor:pointer}
-.lotcard{display:grid;grid-template-columns:1fr repeat(3,110px);gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
-.lotcard:hover{border-color:#3a4150}.lotcard .c small{display:block;color:var(--mut);font-size:11.5px}
-@media (max-width:640px){.lotcard{grid-template-columns:1fr 1fr 1fr}.lotcard>div:first-child{grid-column:1/-1}}
 .pf{font-weight:600}
+.stsel{appearance:none;-webkit-appearance:none;font-size:11.5px;padding:2px 20px 2px 8px;border-radius:20px;border:1px solid var(--line);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b93a3'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer;font-weight:600}
+.stsel option{color:var(--txt);background:var(--panel2)}
+.st-stock{color:var(--blue)}.st-listed{color:var(--amber)}.st-sold{color:var(--green)}.st-kept{color:var(--mut)}.st-used{color:#c084fc}
+.tag{font-size:11.5px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+.lk{font-size:11.5px;padding:2px 8px;border-radius:20px;background:#2a2340;color:var(--violet);white-space:nowrap;cursor:pointer;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.lk:hover{background:#3b3157}
+.lk.add{background:none;border:1px dashed #4b3f6e}
+.sug{font-size:11.5px;padding:2px 4px 2px 8px;border-radius:20px;background:#2b2410;color:#fcd34d;white-space:nowrap;cursor:pointer;display:inline-flex;gap:6px;align-items:center;max-width:280px}
+.sug span{overflow:hidden;text-overflow:ellipsis}
+.sug b{background:#4a3b12;border-radius:20px;padding:0 7px}
+.sug:hover b{background:#6b5517}
 .empty{color:var(--mut);text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:12px}
 .fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--green);color:#06260f;border:0;font-size:30px;font-weight:600;box-shadow:0 8px 24px #0008;cursor:pointer;display:none}
-/* modal */
+/* dialogs */
 dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:18px;padding:0;width:min(680px,96vw);max-height:92vh}
 dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
-.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+dialog form{display:flex;flex-direction:column;max-height:92vh}
+.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .mh h2{margin:0;font-size:17px;margin-right:auto}
-.mb{padding:16px 18px;overflow:auto}
-.mf{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+.mb{padding:16px 18px;overflow:auto;flex:1}
+.mf{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line)}
 fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 12px}
 legend{padding:0 6px;color:var(--mut);font-size:13px;font-weight:600}
 .f{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.f label{display:grid;gap:4px;font-size:12.5px;color:var(--mut)}
+.f label{display:grid;gap:4px;font-size:12.5px;color:var(--mut);align-content:start}
 .f .w2{grid-column:span 2}.f .w4{grid-column:1/-1}
 .f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;color:var(--txt);width:100%}
-.f textarea{min-height:60px;resize:vertical}
-.preview{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:12px}
+.f textarea{min-height:56px;resize:vertical}
+.preview{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:12px}
 .preview b{font-size:20px;font-variant-numeric:tabular-nums}
+.links{display:grid;gap:6px}
+.lrow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13.5px}
+.lrow .nm{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .nm:hover{color:var(--violet)}
+.lrow small{color:var(--mut)}
+.x{border:0;background:none;color:var(--mut);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px}
+.x:hover{color:var(--red);background:#2a1515}
+.cands{display:grid;gap:6px;max-height:52vh;overflow:auto;margin-top:10px}
+.cand{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer}
+.cand:hover{border-color:#3a4150}
+.cand.on{border-color:#4b3f6e;background:#1d1a2e}
+.cand .meta{color:var(--mut);font-size:12px}
+.cand .why{font-size:11px;color:#fcd34d;margin-left:6px}
 .menu{position:relative}
-.menu .dd{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;display:none;min-width:220px;z-index:10;box-shadow:0 10px 30px #0008}
+.menu .dd{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;display:none;min-width:240px;z-index:10;box-shadow:0 10px 30px #0008}
 .menu.open .dd{display:block}
 .dd button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 11px;border-radius:8px;cursor:pointer}
 .dd button:hover{background:var(--panel)}
@@ -106,35 +126,38 @@ svg text{fill:var(--mut);font-size:10.5px}
   .kpi .v{font-size:19px}
   .item{grid-template-columns:1fr auto;gap:4px 10px}
   .item .c{display:none}
-  .item .c.show-m{display:block;grid-column:1;grid-row:2;font-size:12.5px;color:var(--mut)}
-  .item .p{grid-row:1;grid-column:2}
-  .item .c.act:has(button){display:block;grid-column:2;grid-row:2;text-align:right}
-  #tabs{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
-  .toolbar input{min-width:0;flex:1 1 100%}
-  .toolbar select{flex:1 1 100%}
+  .item .c.show-m{display:block;grid-column:1;grid-row:3;font-size:12.5px;color:var(--mut)}
+  .item>div:first-child{grid-column:1/-1;grid-row:1}
+  .item .p{grid-row:2;grid-column:2}
+  .item .c.act:has(button){display:block;grid-column:1;grid-row:2}
+  #subtabs{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .toolbar input,.toolbar select{flex:1 1 100%;min-width:0}
   .f{grid-template-columns:1fr 1fr}
   .f .w2{grid-column:1/-1}
-  header .btn.primary{display:none}
-  .mf{padding:12px;gap:6px}.mf .btn{padding:9px 10px}
+  header .hb{display:none}
   .fab{display:block}
+  .mf{padding:12px;gap:6px}.mf .btn{padding:9px 10px}
+  .views button{flex:1;padding:10px 8px}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo"><i><svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-8" stroke="#06260f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>FlipDesk</div>
+    <div class="logo"><i><svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-8" stroke="#06260f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>FlipDesk <sup>v2</sup></div>
     <div class="seg" id="period">
       <button data-p="all" class="on">Tout</button>
       <button data-p="year">Cette année</button>
       <button data-p="month">Ce mois</button>
       <button data-p="30">30 j</button>
     </div>
-    <button class="btn primary" onclick="openForm()">+ Nouvel achat</button>
+    <button class="btn hb" onclick="openPurchase()">+ Achat</button>
+    <button class="btn primary hb" onclick="openSale()">+ Vente</button>
     <div class="menu" id="menu">
       <button class="btn" onclick="toggleMenu(event)">⋯</button>
       <div class="dd">
-        <button onclick="location.href='/api/export.csv'">📊 Exporter en CSV (Excel)</button>
+        <button onclick="location.href='/api/export.csv?type=sales'">📊 Exporter les ventes (CSV)</button>
+        <button onclick="location.href='/api/export.csv?type=purchases'">📊 Exporter les achats (CSV)</button>
         <button onclick="location.href='/api/backup.json'">💾 Télécharger une sauvegarde</button>
         <button onclick="document.getElementById('imp').click()">📥 Restaurer / importer…</button>
         <hr style="border:0;border-top:1px solid var(--line);margin:6px 4px">
@@ -151,172 +174,228 @@ svg text{fill:var(--mut);font-size:10.5px}
     <div class="card"><h3>Bénéfice net par mois</h3><div id="chart"></div></div>
     <div class="card"><h3>Par plateforme de vente</h3><div class="plat" id="plat"></div></div>
   </section>
+  <div id="hint"></div>
 
+  <div class="views" id="views"></div>
   <div class="toolbar">
-    <div class="seg" id="tabs"></div>
-    <input id="q" placeholder="Rechercher (nom, catégorie, notes)…">
-    <select id="pf"><option value="">Toutes plateformes</option></select>
-    <span id="gchip"></span>
+    <div class="seg" id="subtabs"></div>
+    <input id="q" placeholder="Rechercher…">
+    <select id="pf"></select>
   </div>
   <div class="list" id="list"></div>
 </div>
 
-<button class="fab" onclick="openForm()" aria-label="Nouvel achat">+</button>
+<button class="fab" onclick="view==='purchases'?openPurchase():openSale()" aria-label="Ajouter">+</button>
 
-<dialog id="dlg">
-  <form id="form" method="dialog">
-    <div class="mh"><h2 id="ftitle">Nouvel achat</h2><button type="button" class="btn sm" onclick="dlg.close()">✕</button></div>
+<!-- sale form -->
+<dialog id="ds">
+  <form id="fs" method="dialog">
+    <div class="mh"><h2 id="ts">Nouvelle vente</h2><button type="button" class="btn sm" onclick="ds.close()">✕</button></div>
     <div class="mb">
-      <div class="preview"><span id="pvl">Bénéfice estimé</span><b id="pv">0,00 €</b></div>
-      <fieldset><legend>Article</legend><div class="f">
-        <label class="w2">Nom *<input name="name" required placeholder="ex. Manette DualSense blanche"></label>
-        <label>Catégorie<input name="category" list="cats" placeholder="Manettes, Téléphones…"></label>
-        <label>Statut<select name="status">
-          <option value="stock">En stock</option><option value="listed">En vente</option>
-          <option value="sold">Vendu</option><option value="kept">Gardé</option><option value="parts">Utilisé en pièces</option></select></label>
-        <label class="w2">État<input name="condition" list="conds" placeholder="Très bon état, HS, pour pièces…"></label>
-        <label class="w2">Lien annonce<input name="url" type="url" placeholder="https://…"></label>
-        <label class="w4">Article d'origine (lot) <span style="opacity:.7">— si cet article vient d'un lot ou sert de pièces, choisis l'achat d'origine : les coûts seront partagés</span>
-          <span style="display:flex;gap:6px"><input id="ppick" list="parents" placeholder="Rechercher un achat…" autocomplete="off" style="flex:1"><button type="button" class="btn sm" id="pclear" title="Retirer le lien">✕</button></span>
-          <input type="hidden" name="parent_id"></label>
-        <div class="w4" id="kidsbox"></div>
+      <div class="preview"><span id="pvls" class="mut">Bénéfice</span><b id="pvs">0,00 €</b></div>
+      <fieldset><legend>Annonce</legend><div class="f">
+        <label class="w2">Nom *<input name="name" required placeholder="ex. Manette PS5 blanche"></label>
+        <label>Catégorie<input name="category" list="cats"></label>
+        <label>Statut<select name="status"><option value="listed">En vente</option><option value="sold">Vendu</option></select></label>
+        <label>Plateforme<select name="platform" data-plat></select></label>
+        <label>Prix affiché (€)<input name="list_price" inputmode="decimal" placeholder="0"></label>
+        <label>Mise en vente<input name="list_date" type="date"></label>
+        <label>État<input name="condition" list="conds"></label>
+        <label class="w4">Lien de l'annonce<input name="url" type="url" placeholder="https://…"></label>
       </div></fieldset>
-      <fieldset><legend>Achat</legend><div class="f">
-        <label>Acheté sur<select name="buy_platform" data-plat="buy"></select></label>
-        <label>Date<input name="buy_date" type="date"></label>
-        <label>Prix payé (€)<input name="buy_price" inputmode="decimal" placeholder="0"></label>
-        <label>Frais + port (€)<input name="buy_fees" inputmode="decimal" placeholder="0"></label>
-        <label class="w2">Pièces / réparation (€)<input name="repair_cost" inputmode="decimal" placeholder="0"></label>
-        <label class="w2">Prix affiché en vente (€)<input name="list_price" inputmode="decimal" placeholder="0"></label>
+      <fieldset id="soldset"><legend>Vente</legend><div class="f">
+        <label>Date de vente<input name="date" type="date"></label>
+        <label>Prix de vente (€)<input name="price" inputmode="decimal" placeholder="0"></label>
+        <label>Frais vendeur (€)<input name="fees" inputmode="decimal" placeholder="0"></label>
+        <label>Port payé par toi (€)<input name="ship_cost" inputmode="decimal" placeholder="0"></label>
+        <label class="w2">Réparation / pièces hors achats liés (€)<input name="repair_cost" inputmode="decimal" placeholder="0"></label>
       </div></fieldset>
-      <fieldset id="sellset"><legend>Vente</legend><div class="f">
-        <label>Vendu sur<select name="sell_platform" data-plat="sell"></select></label>
-        <label>Date<input name="sell_date" type="date"></label>
-        <label>Prix de vente (€)<input name="sell_price" inputmode="decimal" placeholder="0"></label>
-        <label>Frais vendeur (€)<input name="sell_fees" inputmode="decimal" placeholder="0"></label>
-        <label class="w2">Port payé par toi (€)<input name="ship_cost" inputmode="decimal" placeholder="0"></label>
-      </div></fieldset>
-      <div class="f"><label class="w4">Notes<textarea name="notes" placeholder="Défauts, échanges avec l'acheteur, n° de suivi…"></textarea></label></div>
+      <fieldset><legend>Achats liés <span class="mut" style="font-weight:400">— leur coût est compté dans cette vente</span></legend>
+        <div class="links" id="sl"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn sm" id="slAdd">🔗 Lier un achat</button><span id="slSug"></span></div>
+      </fieldset>
+      <div class="f"><label class="w4">Notes<textarea name="notes"></textarea></label></div>
     </div>
-    <div class="mf">
-      <button type="button" class="btn danger" id="del">Supprimer</button>
-      <span style="flex:1"></span>
-      <button type="button" class="btn" id="dup">Dupliquer</button>
-      <button type="button" class="btn" id="addlot">+ Article du lot</button>
-      <button type="submit" class="btn primary">Enregistrer</button>
-    </div>
+    <div class="mf"><button type="button" class="btn danger" id="sDel">Supprimer</button><span style="flex:1"></span><button type="submit" class="btn primary">Enregistrer</button></div>
   </form>
 </dialog>
+
+<!-- purchase form -->
+<dialog id="dp">
+  <form id="fp" method="dialog">
+    <div class="mh"><h2 id="tp">Nouvel achat</h2><button type="button" class="btn sm" onclick="dp.close()">✕</button></div>
+    <div class="mb">
+      <div class="preview"><span id="pvlp" class="mut">Coût total</span><b id="pvp">0,00 €</b></div>
+      <fieldset><legend>Achat</legend><div class="f">
+        <label class="w2">Nom *<input name="name" required placeholder="ex. Lot de 3 manettes PS5"></label>
+        <label>Catégorie<input name="category" list="cats"></label>
+        <label>Statut<select name="status"><option value="stock">En stock</option><option value="kept">Gardé</option><option value="used">Utilisé (pièces…)</option></select></label>
+        <label>Acheté sur<select name="platform" data-plat></select></label>
+        <label>Date<input name="date" type="date"></label>
+        <label>Prix payé (€)<input name="price" inputmode="decimal" placeholder="0"></label>
+        <label>Frais + port (€)<input name="fees" inputmode="decimal" placeholder="0"></label>
+        <label class="w4">Lien<input name="url" type="url" placeholder="https://…"></label>
+      </div></fieldset>
+      <fieldset><legend>Ventes liées <span class="mut" style="font-weight:400">— ce que cet achat est devenu</span></legend>
+        <div class="links" id="pl"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn sm" id="plAdd">🔗 Lier une vente</button><button type="button" class="btn sm" id="plNew">➕ Mettre en vente</button><span id="plSug"></span></div>
+      </fieldset>
+      <div class="f"><label class="w4">Notes<textarea name="notes"></textarea></label></div>
+    </div>
+    <div class="mf"><button type="button" class="btn danger" id="pDel">Supprimer</button><span style="flex:1"></span><button type="submit" class="btn primary">Enregistrer</button></div>
+  </form>
+</dialog>
+
+<!-- link picker -->
+<dialog id="dl" style="width:min(560px,96vw)">
+  <div class="mh"><h2 id="tl">Lier</h2><button type="button" class="btn sm" onclick="dl.close()">✕</button></div>
+  <div class="mb">
+    <input id="lq" placeholder="Rechercher…" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px">
+    <div class="cands" id="lc"></div>
+  </div>
+</dialog>
+
 <dialog id="upd" style="width:min(480px,94vw)">
   <div class="mh"><h2>Mise à jour du serveur</h2><button type="button" class="btn sm" onclick="upd.close()">✕</button></div>
   <div class="mb" id="updbody" style="min-height:80px"></div>
   <div class="mf"><span style="flex:1"></span><button class="btn" onclick="upd.close()">Fermer</button><button class="btn primary" id="updgo" style="display:none">Installer et redémarrer</button></div>
 </dialog>
-<datalist id="cats"></datalist><datalist id="parents"></datalist>
+<datalist id="cats"></datalist>
 <datalist id="conds"><option>Neuf</option><option>Très bon état</option><option>Bon état</option><option>État correct</option><option>À réparer</option><option>Pour pièces</option></datalist>
 <div class="toast" id="toast"></div>
 
 <script>
-const PLATS = ["Leboncoin","Vinted","eBay","Facebook","Main propre","Autre"];
-const PCOL = {Leboncoin:"var(--lbc)",Vinted:"var(--vinted)"};
-const ST = {stock:"En stock",listed:"En vente",sold:"Vendu",kept:"Gardé",parts:"Pièces"};
-const NUM = ["buy_price","buy_fees","repair_cost","list_price","sell_price","sell_fees","ship_cost"];
-let items=[], period="all", tab="all", editId=null;
-const $=s=>document.querySelector(s), dlg=$("#dlg"), form=$("#form");
+// ================= data & helpers =================
+const PLATS=["Leboncoin","Vinted","eBay","Facebook","Main propre","Autre"];
+const PCOL={Leboncoin:"var(--lbc)",Vinted:"var(--vinted)"};
+const SST={listed:"En vente",sold:"Vendu"}, PST={stock:"En stock",kept:"Gardé",used:"Utilisé"};
+const NUMS=["price","fees","list_price","ship_cost","repair_cost"];
+let D={purchases:[],sales:[],links:[]}, P={}, S={}, PbyS={}, SbyP={}, ALLOC={}, SHARE={};
+let period="all", view="sales", sub="all";
+const $=s=>document.querySelector(s);
+const ds=$("#ds"),dp=$("#dp"),dl=$("#dl"),fs=$("#fs"),fp=$("#fp");
 const eur=v=>(v<0?"−":"")+Math.abs(v).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
 const eur0=v=>(v<0?"−":"")+Math.abs(v).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const today=()=>new Date().toISOString().slice(0,10);
 const n=v=>+v||0;
-const cost=i=>n(i.buy_price)+n(i.buy_fees)+n(i.repair_cost);
-const net=i=>n(i.sell_price)-n(i.sell_fees)-n(i.ship_cost);
-// Lots: an origin purchase + the items linked to it (parent_id) pool their costs;
-// the pool is spread over the members by sale price (sold) or asking price (unsold);
-// "parts" members weigh 0.
-let ALLOC={}, BYID={}, KIDS={};
-const rootOf=(i,by=BYID)=>i.parent_id&&by[i.parent_id]?i.parent_id:i.id;
-function computeAlloc(list){
-  const by={};list.forEach(i=>by[i.id]=i);
-  const m={},groups={};
-  list.forEach(i=>(groups[rootOf(i,by)]??=[]).push(i));
-  for(const g of Object.values(groups)){
-    if(g.length===1){m[g[0].id]=cost(g[0]);continue}
-    const pool=g.reduce((s,i)=>s+cost(i),0);
-    let w=g.map(i=>i.status==="parts"?0:i.status==="sold"?n(i.sell_price):n(i.list_price)),t=w.reduce((a,b)=>a+b,0);
-    if(t<=0){w=g.map(i=>i.status==="parts"?0:1);t=w.reduce((a,b)=>a+b,0)}
-    if(t<=0){w=g.map(()=>1);t=g.length}
-    g.forEach((i,k)=>m[i.id]=pool*w[k]/t);
-  }
-  return m;
-}
-const ecost=i=>ALLOC[i.id]??cost(i);
-const profit=i=>net(i)-ecost(i);
+const fmtD=d=>d?new Date(d).toLocaleDateString("fr-FR"):"";
 const days=(a,b)=>a&&b?Math.round((new Date(b)-new Date(a))/864e5):null;
 const pcolor=p=>PCOL[p]||"var(--other)";
+const pfs=p=>p?`<span class="pf" style="color:${pcolor(p)}">${esc(p)}</span>`:"";
+const ptotal=p=>n(p.price)+n(p.fees);
+const net=s=>n(s.price)-n(s.fees)-n(s.ship_cost)-n(s.repair_cost);
+const scost=s=>(ALLOC[s.id]||0)+n(s.repair_cost);
+const sprofit=s=>n(s.price)-n(s.fees)-n(s.ship_cost)-scost(s);
 
+// Same rule as the server (model.py): each purchase's cost is spread over its linked
+// sales by sale price (sold) or asking price (listed), equally if none has a price.
+function allocate(purchases,sales,links){
+  const sid={};sales.forEach(s=>sid[s.id]=s);
+  const by={};links.forEach(([p,s])=>{if(sid[s])(by[p]??=[]).push(s)});
+  const alloc={},share={};
+  for(const p of purchases){
+    const ss=by[p.id];if(!ss)continue;
+    let w=ss.map(s=>n(sid[s].status==="sold"?sid[s].price:sid[s].list_price));
+    if(w.reduce((a,b)=>a+b,0)<=0)w=ss.map(()=>1);
+    const t=w.reduce((a,b)=>a+b,0);
+    ss.forEach((s,k)=>{const v=ptotal(p)*w[k]/t;alloc[s]=(alloc[s]||0)+v;share[p.id+":"+s]=v});
+  }
+  return {alloc,share};
+}
+function index(){
+  P={};S={};PbyS={};SbyP={};
+  D.purchases.forEach(p=>P[p.id]=p);D.sales.forEach(s=>S[s.id]=s);
+  D.links.forEach(([p,s])=>{if(P[p]&&S[s]){(PbyS[s]??=[]).push(p);(SbyP[p]??=[]).push(s)}});
+  ({alloc:ALLOC,share:SHARE}=allocate(D.purchases,D.sales,D.links));
+}
+// what a purchase brought back: its share of each linked sale's net, by cost share
+function precovered(p){
+  let got=0,open=0;
+  for(const sid of SbyP[p.id]||[]){
+    const s=S[sid],sh=SHARE[p.id+":"+sid]||0,tot=ALLOC[sid]||0;
+    const part=tot>0?sh/tot:1/(PbyS[sid]||[1]).length;
+    if(s.status==="sold")got+=(n(s.price)-n(s.fees)-n(s.ship_cost)-n(s.repair_cost))*part;else open++;
+  }
+  return {got,open};
+}
+
+// ---------- title similarity for link suggestions ----------
+const STOP=new Set("de du des le la les l d un une et avec pour en a au the and with for tres bon etat neuf pieces piece".split(" "));
+const toks=s=>new Set((s||"").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").split(/[^a-z0-9]+/).filter(t=>t&&!STOP.has(t)));
+function sim(a,b){const A=toks(a),B=toks(b);if(!A.size||!B.size)return 0;let i=0;A.forEach(t=>{if(B.has(t))i++});return i/Math.min(A.size,B.size)*(i>=2||A.size===1||B.size===1?1:.6)}
+// best unlinked purchase for a sale (and the reverse), only if clearly the best
+// in both directions (so one purchase is never suggested for two sales)
+function bestFor(item,kind){
+  const b=best1(item,kind);
+  if(!b||item.id==null)return b;
+  const back=best1(b,kind==="sale"?"purchase":"sale");
+  return back&&back.id===item.id?b:null;
+}
+function best1(item,kind){
+  const pool=kind==="sale"?D.purchases.filter(p=>!SbyP[p.id]&&p.status==="stock"&&p.id!==item.id):D.sales.filter(s=>!PbyS[s.id]);
+  const sc=pool.map(o=>{let v=sim(item.name,o.name);
+      const dBuy=kind==="sale"?o.date:item.date, dSell=kind==="sale"?(item.date||item.list_date):(o.date||o.list_date);
+      if(dBuy&&dSell&&dBuy>dSell)v*=.4;              // can't sell before buying
+      return [v,o]}).filter(x=>x[0]>=.75).sort((a,b)=>b[0]-a[0]);
+  if(!sc.length||(sc[1]&&sc[1][0]===sc[0][0]))return null;
+  return sc[0][1];
+}
+
+// ================= api =================
 async function api(path,opt={}){
   const r=await fetch(path,{headers:{"Content-Type":"application/json"},...opt});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.error||r.statusText);
+  if(!r.ok)throw new Error(j.error||r.statusText);
   return j;
 }
-function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200)}
-async function load(){
-  items=await api("/api/items");
-  BYID={};KIDS={};items.forEach(i=>BYID[i.id]=i);
-  items.forEach(i=>{const r=rootOf(i);if(r!==i.id)(KIDS[r]??=[]).push(i)});
-  ALLOC=computeAlloc(items);render()}
-const inLot=i=>!!(KIDS[i.id]||(i.parent_id&&BYID[i.parent_id]));
-const fmtD=d=>d?new Date(d).toLocaleDateString("fr-FR"):"";
-const pickLabel=i=>`#${i.id} · ${i.name} — ${[i.buy_platform,fmtD(i.buy_date)].filter(Boolean).join(" ")}${cost(i)?" · "+eur(cost(i)):""}`;
+const post=(p,b)=>api(p,{method:"POST",body:JSON.stringify(b)});
+const put=(p,b)=>api(p,{method:"PUT",body:JSON.stringify(b)});
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2400)}
+async function load(){D=await api("/api/data");index();render()}
+async function link(pid,sid,msg=true){await post("/api/link",{purchase_id:pid,sale_id:sid});if(msg)toast("Lié ✓");await load()}
+async function unlink(pid,sid){await post("/api/unlink",{purchase_id:pid,sale_id:sid});toast("Lien retiré");await load()}
 
+// ================= dashboard =================
 function inPeriod(d){
-  if(period==="all")return true; if(!d)return false;
+  if(period==="all")return true;if(!d)return false;
   const x=new Date(d),now=new Date();
   if(period==="year")return x.getFullYear()===now.getFullYear();
   if(period==="month")return x.getFullYear()===now.getFullYear()&&x.getMonth()===now.getMonth();
   return (now-x)/864e5<=30;
 }
+function render(){renderKpis();renderChart();renderPlat();renderHint();renderViews();renderList();
+  $("#cats").innerHTML=[...new Set([...D.purchases,...D.sales].map(i=>i.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join("")}
 
-function render(){renderKpis();renderChart();renderPlat();renderTabs();renderList();
-  $("#parents").innerHTML=items.filter(i=>!(i.parent_id&&BYID[i.parent_id]))
-    .sort((a,b)=>(cost(b)>0)-(cost(a)>0)||(b.buy_date||"").localeCompare(a.buy_date||""))
-    .map(i=>`<option value="${esc(pickLabel(i))}"></option>`).join("");
-  $("#cats").innerHTML=[...new Set(items.map(i=>i.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join("");}
-
-const lotRoots=()=>Object.keys(KIDS).map(Number).filter(id=>BYID[id]);
-let group=null; // id of the origin purchase whose lot is being shown
 function renderKpis(){
-  const sold=items.filter(i=>i.status==="sold"&&inPeriod(i.sell_date));
-  const spent=items.filter(i=>inPeriod(i.buy_date)).reduce((s,i)=>s+cost(i),0);
-  const rev=sold.reduce((s,i)=>s+n(i.sell_price),0);
-  const pr=sold.reduce((s,i)=>s+profit(i),0);
-  const c=sold.reduce((s,i)=>s+ecost(i),0);
-  const stock=items.filter(i=>i.status==="stock"||i.status==="listed");
-  const stockV=stock.reduce((s,i)=>s+ecost(i),0);
-  const listedV=stock.filter(i=>i.status==="listed").reduce((s,i)=>s+n(i.list_price),0);
-  const d=sold.map(i=>days(i.buy_date,i.sell_date)).filter(x=>x!==null&&x>=0);
+  const sold=D.sales.filter(s=>s.status==="sold"&&inPeriod(s.date));
+  const rev=sold.reduce((a,s)=>a+n(s.price),0), pr=sold.reduce((a,s)=>a+sprofit(s),0);
+  const lk=sold.filter(s=>PbyS[s.id]), lkC=lk.reduce((a,s)=>a+scost(s),0), lkP=lk.reduce((a,s)=>a+sprofit(s),0);
+  const nolink=sold.filter(s=>!PbyS[s.id]).length;
+  const spent=D.purchases.filter(p=>inPeriod(p.date)).reduce((a,p)=>a+ptotal(p),0);
+  const freeP=D.purchases.filter(p=>p.status==="stock"&&!SbyP[p.id]), listed=D.sales.filter(s=>s.status==="listed");
+  const stockV=freeP.reduce((a,p)=>a+ptotal(p),0)+listed.reduce((a,s)=>a+(ALLOC[s.id]||0),0);
+  const listedV=listed.reduce((a,s)=>a+n(s.list_price),0);
+  const d=sold.map(s=>{const ds=(PbyS[s.id]||[]).map(p=>P[p].date).filter(Boolean).sort();return ds.length?days(ds[0],s.date):null}).filter(x=>x!==null&&x>=0);
   const avgD=d.length?Math.round(d.reduce((a,b)=>a+b,0)/d.length):null;
   const k=[
-    ["Bénéfice net",`<span class="${pr>=0?"pos":"neg"}">${eur(pr)}</span>`,`${sold.length} vente${sold.length>1?"s":""}`],
+    ["Bénéfice net",`<span class="${pr>=0?"pos":"neg"}">${eur(pr)}</span>`,`${sold.length} vente${sold.length>1?"s":""}${nolink?` · <span style="color:var(--amber)" title="Sans achat lié, leur coût compte pour 0">${nolink} sans achat</span>`:""}`],
     ["Chiffre d'affaires",eur(rev),sold.length?`panier moyen ${eur0(rev/sold.length)}`:"—"],
-    ["Marge / coût",c>0?`${Math.round(pr/c*100)} %`:"—",sold.length?`${eur0(pr/sold.length)} par vente`:"—"],
-    ["Dépensé en achats",eur(spent),"achats + frais + pièces"],
-    ["Stock immobilisé",eur(stockV),`${stock.length} article${stock.length>1?"s":""}${listedV?` · ${eur0(listedV)} affichés`:""}`],
+    ["Marge / coût",lkC>0?`${Math.round(lkP/lkC*100)} %`:"—",lk.length?`sur ${lk.length} vente${lk.length>1?"s":""} liée${lk.length>1?"s":""} · ${eur0(lkP/lk.length)} chacune`:"lie tes ventes à leurs achats"],
+    ["Dépensé en achats",eur(spent),"prix + frais + port"],
+    ["Stock immobilisé",eur(stockV),`${freeP.length} achat${freeP.length>1?"s":""} non revendu${freeP.length>1?"s":""} · ${listed.length} annonce${listed.length>1?"s":""}${listedV?` (${eur0(listedV)})`:""}`],
     ["Délai de vente",avgD===null?"—":`${avgD} j`,"moyen, achat → vente"],
   ];
   $("#kpis").innerHTML=k.map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
 }
-
 function renderChart(){
-  const now=new Date(), months=[], NM=innerWidth<640?6:12;
-  for(let m=NM-1;m>=0;m--){const d=new Date(now.getFullYear(),now.getMonth()-m,1);months.push({k:d.toISOString().slice(0,7),l:d.toLocaleDateString("fr-FR",{month:"short"}).replace(".",""),v:0,n:0})}
-  items.filter(i=>i.status==="sold"&&i.sell_date).forEach(i=>{const m=months.find(x=>x.k===i.sell_date.slice(0,7));if(m){m.v+=profit(i);m.n++}});
+  const now=new Date(),months=[],NM=innerWidth<640?6:12;
+  for(let m=NM-1;m>=0;m--){const d=new Date(now.getFullYear(),now.getMonth()-m,1);months.push({k:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`,l:d.toLocaleDateString("fr-FR",{month:"short"}).replace(".",""),v:0,n:0})}
+  D.sales.filter(s=>s.status==="sold"&&s.date).forEach(s=>{const m=months.find(x=>x.k===s.date.slice(0,7));if(m){m.v+=sprofit(s);m.n++}});
   const W=NM===6?360:640,H=190,pad=NM===6?10:26,bw=(W-pad*2)/NM;
   const max=Math.max(1,...months.map(m=>m.v)),min=Math.min(0,...months.map(m=>m.v));
   const y=v=>12+(max-v)/(max-min)*(H-40);
-  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Bénéfice par mois">`;
-  s+=`<line x1="${pad}" x2="${W-pad}" y1="${y(0)}" y2="${y(0)}" stroke="#2a2f3a"/>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Bénéfice par mois"><line x1="${pad}" x2="${W-pad}" y1="${y(0)}" y2="${y(0)}" stroke="#2a2f3a"/>`;
   months.forEach((m,i)=>{
     const x=pad+i*bw+bw*.18,w=bw*.64,top=Math.min(y(m.v),y(0)),h=Math.max(Math.abs(y(m.v)-y(0)),m.n?2:0);
     s+=`<rect x="${x}" y="${top}" width="${w}" height="${h}" rx="4" fill="${m.v>=0?"#22c55e":"#ef4444"}"><title>${m.l} : ${eur(m.v)} (${m.n} vente${m.n>1?"s":""})</title></rect>`;
@@ -325,204 +404,294 @@ function renderChart(){
   });
   $("#chart").innerHTML=s+"</svg>";
 }
-
 function renderPlat(){
-  const sold=items.filter(i=>i.status==="sold"&&inPeriod(i.sell_date));
-  const g={};sold.forEach(i=>{const p=i.sell_platform||"Autre";(g[p]??={n:0,rev:0,pr:0,d:[]});g[p].n++;g[p].rev+=n(i.sell_price);g[p].pr+=profit(i);const d=days(i.buy_date,i.sell_date);if(d!==null&&d>=0)g[p].d.push(d)});
+  const g={};D.sales.filter(s=>s.status==="sold"&&inPeriod(s.date)).forEach(s=>{const p=s.platform||"Autre";(g[p]??={n:0,rev:0,pr:0});g[p].n++;g[p].rev+=n(s.price);g[p].pr+=sprofit(s)});
   const rows=Object.entries(g).sort((a,b)=>b[1].pr-a[1].pr);
   if(!rows.length){$("#plat").innerHTML=`<div class="empty" style="padding:24px">Pas encore de vente sur la période</div>`;return}
   const max=Math.max(...rows.map(r=>Math.abs(r[1].pr)),1);
   $("#plat").innerHTML=rows.map(([p,v])=>`<div><div class="prow"><span class="dot" style="background:${pcolor(p)}"></span>
-    <span><b>${esc(p)}</b> <span style="color:var(--mut);font-size:12.5px">· ${v.n} vente${v.n>1?"s":""} · CA ${eur0(v.rev)}${v.d.length?` · ${Math.round(v.d.reduce((a,b)=>a+b,0)/v.d.length)} j`:""}</span></span>
-    <b class="${v.pr>=0?"pos":"neg"}">${eur(v.pr)}</b></div>
-    <div class="bar"><div style="width:${Math.abs(v.pr)/max*100}%;background:${pcolor(p)}"></div></div></div>`).join("");
+    <span><b>${esc(p)}</b> <span class="mut" style="font-size:12.5px">· ${v.n} vente${v.n>1?"s":""} · CA ${eur0(v.rev)}</span></span>
+    <b class="${v.pr>=0?"pos":"neg"}">${eur(v.pr)}</b></div><div class="bar"><div style="width:${Math.abs(v.pr)/max*100}%;background:${pcolor(p)}"></div></div></div>`).join("");
+}
+function renderHint(){
+  const k=D.sales.filter(s=>!PbyS[s.id]&&bestFor(s,"sale")).length;
+  $("#hint").innerHTML=k?`<div class="hintbar">💡 <span><b>${k} vente${k>1?"s":""}</b> ressemble${k>1?"nt":""} à un de tes achats non liés.</span><span style="flex:1"></span><button class="btn sm" id="showSug">Voir</button></div>`:"";
 }
 
-function renderTabs(){
-  const c=s=>s==="all"?items.length:s==="lots"?lotRoots().length:items.filter(i=>i.status===s).length;
-  $("#tabs").innerHTML=[["all","Tous"],["stock","En stock"],["listed","En vente"],["sold","Vendus"],["kept","Gardés"],["parts","Pièces"],["lots","📦 Lots"]]
-    .map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l} <span style="opacity:.6">${c(k)}</span></button>`).join("");
+// ================= lists =================
+const SUBS={
+  sales:[["all","Toutes"],["listed","En vente"],["sold","Vendues"],["nolink","Sans achat lié"]],
+  purchases:[["all","Tous"],["stock","En stock"],["linked","Revendus / liés"],["used","Utilisés"],["kept","Gardés"]],
+};
+function subFilter(i){
+  if(view==="sales")return sub==="all"||(sub==="nolink"?!PbyS[i.id]:i.status===sub);
+  if(sub==="all")return true;
+  if(sub==="linked")return !!SbyP[i.id];
+  if(sub==="stock")return i.status==="stock"&&!SbyP[i.id];
+  return i.status===sub;
 }
-
-function renderLots(q){
-  const L=lotRoots().filter(id=>!q||[BYID[id],...KIDS[id]].some(i=>i.name.toLowerCase().includes(q)))
-    .sort((a,b)=>(BYID[b].buy_date||"").localeCompare(BYID[a].buy_date||""));
-  if(!L.length){$("#list").innerHTML=`<div class="empty">Aucun lot.<br>Ouvre un achat et clique sur <b>+ Article du lot</b> pour chaque article qui en sort,<br>ou choisis l'<b>article d'origine</b> dans un article existant.</div>`;return}
-  $("#list").innerHTML=L.map(id=>{
-    const root=BYID[id], l=root.name, g=[root,...KIDS[id]], pool=g.reduce((s,i)=>s+cost(i),0);
-    const sold=g.filter(i=>i.status==="sold"), rev=sold.reduce((s,i)=>s+net(i),0), res=rev-pool;
-    const left=g.filter(i=>i.status==="stock"||i.status==="listed").length, parts=g.filter(i=>i.status==="parts").length;
-    return `<div class="lotcard" data-group="${id}">
-      <div style="min-width:0"><div class="n" style="font-weight:650">📦 ${esc(l)}</div>
-        <div class="meta" style="color:var(--mut);font-size:12.5px">${[root.buy_platform,fmtD(root.buy_date)].filter(Boolean).join(" ")} · ${g.length} article${g.length>1?"s":""} · ${sold.length} vendu${sold.length>1?"s":""}${parts?` · ${parts} en pièces`:""}${left?` · <span style="color:var(--amber)">${left} restant${left>1?"s":""}</span>`:" · terminé"}</div></div>
-      <div class="c"><small>coût total</small>${eur(pool)}</div>
-      <div class="c"><small>ventes (net)</small>${eur(rev)}</div>
-      <div class="c" style="text-align:right"><small>${left?"résultat actuel":"résultat"}</small><b class="${res>=0?"pos":"neg"}">${res>=0?"+":""}${eur(res)}</b></div>
-    </div>`}).join("");
+function renderViews(){
+  $("#views").innerHTML=`<button data-v="sales" class="${view==="sales"?"on":""}">🏷️ Ventes<span>${D.sales.length}</span></button><button data-v="purchases" class="${view==="purchases"?"on":""}">🛒 Achats<span>${D.purchases.length}</span></button>`;
+  const L=view==="sales"?D.sales:D.purchases;
+  $("#subtabs").innerHTML=SUBS[view].map(([k,l])=>`<button data-s="${k}" class="${sub===k?"on":""}">${l} <span style="opacity:.6">${L.filter(i=>{const o=sub;sub=k;const r=subFilter(i);sub=o;return r}).length}</span></button>`).join("");
+  $("#q").placeholder=view==="sales"?"Rechercher une vente…":"Rechercher un achat…";
+}
+function chips(ids,kind){
+  const arr=ids.map(id=>kind==="p"?P[id]:S[id]);
+  const first=arr.slice(0,2).map(o=>`<span class="lk" data-open${kind}="${o.id}" title="${esc(o.name)}">${kind==="p"?"← ":"→ "}${esc(o.name)}</span>`).join("");
+  return first+(arr.length>2?`<span class="lk" data-open${kind}="${arr[2].id}">+${arr.length-2}</span>`:"");
 }
 function renderList(){
   const q=$("#q").value.trim().toLowerCase(), pf=$("#pf").value;
-  if(tab==="lots")return renderLots(q);
-  $("#gchip").innerHTML=group&&BYID[group]?`<span class="chip">📦 ${esc(BYID[group].name)}<button data-ungroup title="Voir tout">✕</button></span>`:"";
-  let L=items.filter(i=>(!group||rootOf(i)===group)&&(tab==="all"||i.status===tab)
-    &&(!pf||i.buy_platform===pf||i.sell_platform===pf)
-    &&(!q||[i.name,i.category,i.notes,i.condition].join(" ").toLowerCase().includes(q)));
-  if(group)L.sort((a,b)=>(a.id===group?-1:b.id===group?1:0));
-  if(!L.length){$("#list").innerHTML=`<div class="empty">${items.length?"Rien ne correspond.":"Aucun article pour l'instant.<br>Ajoute ton premier achat avec <b>+ Nouvel achat</b>."}</div>`;return}
-  $("#list").innerHTML=L.map(i=>{
-    const sold=i.status==="sold", pr=profit(i), d=sold?days(i.buy_date,i.sell_date):(i.status==="stock"||i.status==="listed")?days(i.buy_date,today()):null;
-    const bp=i.buy_platform?`<span class="pf" style="color:${pcolor(i.buy_platform)}">${esc(i.buy_platform)}</span>`:"";
-    const sp=i.sell_platform?`<span class="pf" style="color:${pcolor(i.sell_platform)}">${esc(i.sell_platform)}</span>`:"";
-    let right;
-    if(sold) right=`<div class="p ${pr>=0?"pos":"neg"}">${pr>=0?"+":""}${eur(pr)}</div>`;
-    else if(i.status==="listed"&&n(i.list_price)) {const e=n(i.list_price)-ecost(i);right=`<div class="p" style="color:var(--mut)" title="si vendu au prix affiché">≈ ${e>=0?"+":""}${eur0(e)}</div>`}
-    else right=`<div class="p" style="color:var(--mut)">—</div>`;
-    return `<div class="item" data-id="${i.id}">
-      <div style="min-width:0"><div class="n">${esc(i.name)}</div>
-        <div class="meta"><select class="stsel st-${i.status}" data-st="${i.id}" aria-label="Statut">${Object.entries(ST).map(([k,l])=>`<option value="${k}"${k===i.status?" selected":""}>${l}</option>`).join("")}</select>${
-          i.parent_id&&BYID[i.parent_id]?`<span class="lottag" data-open="${i.parent_id}" title="Ouvrir l'achat d'origine">↳ ${esc(BYID[i.parent_id].name)}</span>`
-          :KIDS[i.id]?`<span class="lottag" data-group="${i.id}" title="Voir les articles du lot">📦 ${KIDS[i.id].length+1} articles</span>`:""}${i.category?`<span>${esc(i.category)}</span>`:""}${d!==null?`<span>· ${d} j</span>`:""}</div></div>
-      <div class="c">${eur(ecost(i))}<small>${inLot(i)&&Math.abs(ecost(i)-cost(i))>.005?"part du lot · ":""}${bp||"achat"} ${i.buy_date?new Date(i.buy_date).toLocaleDateString("fr-FR"):""}</small></div>
-      <div class="c">${sold?eur(n(i.sell_price)):i.status==="listed"&&n(i.list_price)?`<span style="color:var(--amber)">${eur(n(i.list_price))}</span>`:"—"}<small>${sold?sp+" "+(i.sell_date?new Date(i.sell_date).toLocaleDateString("fr-FR"):""):i.status==="listed"?"affiché":""}</small></div>
-      <div class="c act">${sold?`<small>net reçu</small>${eur(net(i))}`:i.status==="stock"||i.status==="listed"?`<button class="btn sm" data-sell="${i.id}">Vendu ✓</button>`:""}</div>
-      ${right}
-      <div class="c show-m">${eur(ecost(i))} → ${sold?eur(n(i.sell_price)):"…"} ${sold?sp:bp}</div>
-    </div>`}).join("");
+  const L=(view==="sales"?D.sales:D.purchases).filter(i=>subFilter(i)&&(!pf||i.platform===pf)&&(!q||[i.name,i.category,i.notes].join(" ").toLowerCase().includes(q)));
+  if(!L.length){$("#list").innerHTML=`<div class="empty">${(view==="sales"?D.sales:D.purchases).length?"Rien ne correspond.":view==="sales"?"Aucune vente pour l'instant.<br>Ajoute une annonce avec <b>+ Vente</b>.":"Aucun achat pour l'instant.<br>Ajoute-en un avec <b>+ Achat</b>."}</div>`;return}
+  $("#list").innerHTML=L.map(view==="sales"?saleRow:purchaseRow).join("");
+}
+function saleRow(s){
+  const sold=s.status==="sold", linked=PbyS[s.id]||[], c=scost(s), pr=sprofit(s);
+  let linkUI=linked.length?chips(linked,"p"):`<span class="lk add" data-pick="s:${s.id}">🔗 Lier un achat</span>`;
+  if(!linked.length){const b=bestFor(s,"sale");if(b)linkUI+=`<span class="sug" data-sug="${b.id}:${s.id}" title="Lier à cet achat"><span>💡 ${esc(b.name)} · ${eur0(ptotal(b))}</span><b>lier</b></span>`}
+  const right=sold?`<div class="p ${pr>=0?"pos":"neg"}">${pr>=0?"+":""}${eur(pr)}</div>`
+    :n(s.list_price)?`<div class="p mut" title="si vendu au prix affiché">≈ ${(()=>{const e=n(s.list_price)-c;return (e>=0?"+":"")+eur0(e)})()}</div>`:`<div class="p mut">—</div>`;
+  return `<div class="item" data-s="${s.id}">
+    <div style="min-width:0"><div class="n">${esc(s.name)}</div>
+      <div class="meta"><select class="stsel st-${s.status}" data-sst="${s.id}" aria-label="Statut">${Object.entries(SST).map(([k,l])=>`<option value="${k}"${k===s.status?" selected":""}>${l}</option>`).join("")}</select>${linkUI}</div></div>
+    <div class="c">${linked.length||n(s.repair_cost)?eur(c):`<span class="mut">—</span>`}<small>${linked.length?"coût des achats":"coût"}</small></div>
+    <div class="c">${sold?eur(n(s.price)):n(s.list_price)?`<span style="color:var(--amber)">${eur(n(s.list_price))}</span>`:"—"}<small>${pfs(s.platform)} ${sold?fmtD(s.date):"affiché"}</small></div>
+    <div class="c act">${sold?`<small>net reçu</small>${eur(net(s))}`:`<button class="btn sm" data-sell="${s.id}">Vendu ✓</button>`}</div>
+    ${right}
+    <div class="c show-m">${pfs(s.platform)} ${sold?eur(n(s.price))+" · "+fmtD(s.date):n(s.list_price)?"affiché "+eur0(n(s.list_price)):""}${linked.length?" · coût "+eur0(c):""}</div>
+  </div>`;
+}
+function purchaseRow(p){
+  const linked=SbyP[p.id]||[], t=ptotal(p), {got,open}=precovered(p);
+  let linkUI=linked.length?chips(linked,"s"):`<span class="lk add" data-pick="p:${p.id}">🔗 Lier à une vente</span>`;
+  if(!linked.length){const b=bestFor(p,"purchase");if(b)linkUI+=`<span class="sug" data-sug="${p.id}:${b.id}" title="Lier à cette vente"><span>💡 ${esc(b.name)} · ${eur0(n(b.status==="sold"?b.price:b.list_price))}</span><b>lier</b></span>`}
+  const st=linked.length&&p.status==="stock"?`<span class="tag ${open?"st-listed":"st-sold"}">${open?"En vente":"Revendu"}</span>`
+    :`<select class="stsel st-${p.status}" data-pst="${p.id}" aria-label="Statut">${Object.entries(PST).map(([k,l])=>`<option value="${k}"${k===p.status?" selected":""}>${l}</option>`).join("")}</select>`;
+  const res=got-t;
+  const right=linked.length&&!open?`<div class="p ${res>=0?"pos":"neg"}">${res>=0?"+":""}${eur(res)}</div>`
+    :linked.length?`<div class="p mut" title="ventes en cours">en cours</div>`:`<div class="p mut">—</div>`;
+  return `<div class="item" data-p="${p.id}">
+    <div style="min-width:0"><div class="n">${esc(p.name)}</div>
+      <div class="meta">${st}${linkUI}</div></div>
+    <div class="c">${eur(t)}<small>${pfs(p.platform)} ${fmtD(p.date)}</small></div>
+    <div class="c">${linked.length?eur(got):"—"}<small>${linked.length?`récupéré${open?` · ${open} en cours`:""}`:"pas encore lié"}</small></div>
+    <div class="c act">${!linked.length&&p.status==="stock"?`<button class="btn sm" data-newsale="${p.id}">➕ En vente</button>`:""}</div>
+    ${right}
+    <div class="c show-m">${eur(t)} · ${pfs(p.platform)} ${fmtD(p.date)}${linked.length?" · récupéré "+eur0(got):""}</div>
+  </div>`;
 }
 
-// ----- form -----
+// ================= forms =================
+let curS=null, curP=null, pendS=[], pendP=[]; // pending links for records not saved yet
 function fillPlats(){
-  document.querySelectorAll("select[data-plat]").forEach(s=>{
-    const extra=s.dataset.plat==="buy"?["Déjà possédé"]:[];
-    s.innerHTML=`<option value=""></option>`+[...PLATS,...extra].map(p=>`<option>${p}</option>`).join("");
-  });
+  document.querySelectorAll("select[data-plat]").forEach(s=>s.innerHTML=`<option value=""></option>`+PLATS.map(p=>`<option>${p}</option>`).join(""));
   $("#pf").innerHTML=`<option value="">Toutes plateformes</option>`+PLATS.map(p=>`<option>${p}</option>`).join("");
 }
-function formData(){
-  const o=Object.fromEntries(new FormData(form));
-  NUM.forEach(k=>o[k]=(o[k]||"").toString().replace(",","."));
-  return o;
+function fill(form,obj){for(const [k,v] of Object.entries(obj)){const el=form.elements[k];if(el)el.value=NUMS.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}}
+function read(form){const o=Object.fromEntries(new FormData(form));NUMS.forEach(k=>{if(k in o)o[k]=(o[k]||"").toString().replace(",",".")});return o}
+
+// ---- sale ----
+function openSale(s=null,opts={}){
+  curS=s?.id??null; pendS=opts.purchase_ids?[...opts.purchase_ids]:[]; fs.reset();
+  const d=s?{...s}:{status:"listed",list_date:today(),...(opts.prefill||{})};
+  if(opts.sell){d.status="sold";d.date||=today();if(!n(d.price)&&n(d.list_price))d.price=d.list_price}
+  fill(fs,d);
+  $("#ts").textContent=s?(opts.sell?"Marquer comme vendu":"Vente"):"Nouvelle vente";
+  $("#sDel").style.visibility=s?"visible":"hidden";
+  renderSaleLinks(); salePreview(); if(!ds.open)ds.showModal();
+  if(opts.sell)fs.elements.price.focus(); else if(!s)fs.elements.name.focus();
 }
-function syncPick(){
-  const v=$("#ppick").value.trim(), m=v.match(/^#(\d+)/), id=m&&BYID[+m[1]]?+m[1]:"";
-  form.elements.parent_id.value=id&&id!==editId?id:"";
+function saleLinks(){return curS?(PbyS[curS]||[]):pendS}
+function renderSaleLinks(){
+  const ids=saleLinks();
+  $("#sl").innerHTML=ids.length?ids.map(pid=>{const p=P[pid];const sh=curS?SHARE[pid+":"+curS]:null;
+    return `<div class="lrow"><span class="nm" data-openp="${pid}">${esc(p.name)} <small>· ${pfs(p.platform)} ${fmtD(p.date)}</small></span><small>${sh!=null&&Math.abs(sh-ptotal(p))>.005?`part ${eur(sh)} / ${eur(ptotal(p))}`:eur(ptotal(p))}</small><button type="button" class="x" data-unp="${pid}" title="Retirer le lien">✕</button></div>`}).join("")
+    :`<div class="mut" style="font-size:13px">Aucun achat lié : le coût de cette vente compte pour 0.</div>`;
+  const cur=curS?S[curS]:{...read(fs),id:null};
+  const b=!ids.length?bestFor(cur,"sale"):null;
+  $("#slSug").innerHTML=b?`<span class="sug" data-fsug="${b.id}"><span>💡 ${esc(b.name)} · ${eur0(ptotal(b))}</span><b>lier</b></span>`:"";
 }
-function setPick(id){const p=BYID[id];$("#ppick").value=p?pickLabel(p):"";form.elements.parent_id.value=p?id:""}
-$("#ppick").addEventListener("input",()=>{syncPick();updatePreview()});
-$("#ppick").addEventListener("change",()=>{syncPick();if(!form.elements.parent_id.value)$("#ppick").value="";updatePreview()});
-$("#pclear").onclick=()=>{setPick(null);updatePreview()};
-function renderKids(){
-  const k=editId&&KIDS[editId];
-  $("#kidsbox").innerHTML=k?`<div style="font-size:12.5px;color:var(--mut)">Articles issus de cet achat :</div><div class="kids">${k.map(c=>`<a data-goto="${c.id}"><span>${esc(c.name)}</span><span style="color:var(--mut)">${ST[c.status]}${c.status==="sold"?" · "+eur(n(c.sell_price)):""}</span></a>`).join("")}</div>`:"";
-  // an origin purchase can't itself be linked to another one from here
-  $("#ppick").disabled=!!k;$("#ppick").placeholder=k?"C'est l'achat d'origine de ce lot":"Rechercher un achat…";
-}
-$("#kidsbox").addEventListener("click",e=>{const a=e.target.closest("[data-goto]");if(a){dlg.close();openForm(BYID[a.dataset.goto])}});
-function updatePreview(){
-  const o=formData(), st=o.status;
-  o.id=editId??"__new"; o.parent_id=+o.parent_id||null;
-  const linked=!!(o.parent_id||KIDS[editId]);
-  const ec=linked?computeAlloc([...items.filter(i=>i.id!==editId),o])[o.id]:cost(o);
-  $("#sellset").style.opacity=st==="sold"?1:.55;
+function salePreview(){
+  const o=read(fs); $("#soldset").style.opacity=o.status==="sold"?1:.55;
+  const ids=saleLinks();
+  // simulate allocation with the form's values
+  const s={...(curS?S[curS]:{}),...o,id:curS??"__new"};
+  const sales=[...D.sales.filter(x=>x.id!==curS),s];
+  const links=[...D.links.filter(([p,x])=>x!==curS),...ids.map(p=>[p,s.id])];
+  const {alloc}=allocate(D.purchases,sales,links);
+  const c=(alloc[s.id]||0)+n(o.repair_cost);
   let v,l;
-  const lt=linked?" (avec sa part du lot)":"";
-  if(st==="parts"){v=-ec;l="Utilisé en pièces : coût reporté sur le lot"}
-  else if(st==="sold"){v=net(o)-ec;l="Bénéfice net"+lt}
-  else if(n(o.list_price)){v=n(o.list_price)-ec;l="Bénéfice si vendu au prix affiché"+lt}
-  else{v=-ec;l="Coût engagé"+lt}
-  $("#pvl").textContent=l; const b=$("#pv"); b.textContent=eur(v); b.className=v>0?"pos":v<0?"neg":"";
+  if(o.status==="sold"){v=n(o.price)-n(o.fees)-n(o.ship_cost)-c;l="Bénéfice net"}
+  else if(n(o.list_price)){v=n(o.list_price)-c;l="Bénéfice si vendu au prix affiché"}
+  else{v=-c;l="Coût"}
+  $("#pvls").textContent=l+(ids.length?` · coût ${eur(c)}`:"");const b=$("#pvs");b.textContent=eur(v);b.className=v>0?"pos":v<0?"neg":"";
 }
-function openForm(it=null,opts={}){
-  editId=it?.id??null; form.reset();
-  $("#ftitle").textContent=it?(opts.sell?"Marquer comme vendu":"Modifier"):"Nouvel achat";
-  $("#del").style.visibility=editId?"visible":"hidden";
-  $("#dup").style.visibility=editId?"visible":"hidden";
-  $("#addlot").style.display=editId?"":"none";
-  const d=it?{...it}:{status:"stock",buy_date:today()};
-  if(opts.sell){d.status="sold";d.sell_date||=today();if(!n(d.sell_price)&&n(d.list_price))d.sell_price=d.list_price;d.sell_platform||=d.buy_platform==="Déjà possédé"?"":d.buy_platform}
-  for(const [k,v] of Object.entries(d)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}
-  setPick(d.parent_id); renderKids();
-  updatePreview(); dlg.showModal();
-  if(opts.sell)form.elements.sell_price.focus(); else if(!it)form.elements.name.focus();
-}
-form.addEventListener("input",updatePreview);
-form.elements.status.addEventListener("change",e=>{if(e.target.value==="sold"&&!form.elements.sell_date.value)form.elements.sell_date.value=today();if(e.target.value==="listed"&&!form.elements.list_date?.value){} updatePreview()});
-form.addEventListener("submit",async e=>{
-  e.preventDefault();
-  syncPick(); const o=formData(); o.parent_id=o.parent_id||null;
-  if(o.status==="listed")o.list_date=o.list_date||today();
+fs.addEventListener("input",salePreview);
+fs.elements.status.addEventListener("change",e=>{if(e.target.value==="sold"){if(!fs.elements.date.value)fs.elements.date.value=today();if(!fs.elements.price.value)fs.elements.price.value=fs.elements.list_price.value}salePreview()});
+fs.addEventListener("submit",async e=>{
+  e.preventDefault();const o=read(fs);
   try{
-    if(editId)await api(`/api/items/${editId}`,{method:"PUT",body:JSON.stringify(o)});
-    else await api("/api/items",{method:"POST",body:JSON.stringify(o)});
-    dlg.close(); toast(editId?"Modifié":"Ajouté"); load();
+    if(curS)await put(`/api/sales/${curS}`,o);else await post("/api/sales",{...o,purchase_ids:pendS});
+    ds.close();toast(curS?"Vente modifiée":"Vente ajoutée");load();
   }catch(err){toast("Erreur : "+err.message)}
 });
-$("#del").onclick=async()=>{if(!editId||!confirm(KIDS[editId]?`Supprimer cet achat ? Les ${KIDS[editId].length} article(s) du lot ne seront plus liés.`:"Supprimer cet article ?"))return;await api(`/api/items/${editId}`,{method:"DELETE"});dlg.close();toast("Supprimé");load()};
-$("#dup").onclick=()=>{const it=items.find(i=>i.id===editId);if(!it)return;dlg.close();const c={...it};delete c.id;Object.assign(c,{status:"stock",sell_platform:"",sell_date:"",sell_price:0,sell_fees:0,ship_cost:0,buy_date:today()});openForm(null);for(const [k,v] of Object.entries(c)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}setPick(c.parent_id);updatePreview()};
+$("#sDel").onclick=async()=>{if(!curS||!confirm("Supprimer cette vente ? Les achats liés ne sont pas supprimés."))return;await api(`/api/sales/${curS}`,{method:"DELETE"});ds.close();toast("Supprimée");load()};
+$("#slAdd").onclick=()=>openPicker("sale",curS,{name:fs.elements.name.value||"cette vente"});
+$("#sl").addEventListener("click",async e=>{
+  const u=e.target.closest("[data-unp]");if(u){const pid=+u.dataset.unp;if(curS){await unlink(pid,curS);renderSaleLinks();salePreview()}else{pendS=pendS.filter(x=>x!==pid);renderSaleLinks();salePreview()}return}
+  const o=e.target.closest("[data-openp]");if(o){ds.close();openPurchase(P[o.dataset.openp])}
+});
+$("#slSug").addEventListener("click",async e=>{const b=e.target.closest("[data-fsug]");if(!b)return;const pid=+b.dataset.fsug;
+  if(curS){await link(pid,curS)}else pendS.push(pid);renderSaleLinks();salePreview()});
 
-$("#addlot").onclick=()=>{
-  const it=BYID[editId];if(!it)return;
-  const root=BYID[rootOf(it)];
-  dlg.close(); openForm(null);
-  Object.entries({buy_platform:root.buy_platform,buy_date:root.buy_date,category:root.category,status:"stock"}).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v||""});
-  setPick(root.id);
-  $("#ftitle").textContent="Nouvel article du lot";updatePreview();form.elements.name.focus();
+// ---- purchase ----
+function openPurchase(p=null){
+  curP=p?.id??null; pendP=[]; fp.reset();
+  fill(fp,p?{...p}:{status:"stock",date:today()});
+  $("#tp").textContent=p?"Achat":"Nouvel achat";
+  $("#pDel").style.visibility=p?"visible":"hidden";
+  renderPurchaseLinks(); purchasePreview(); if(!dp.open)dp.showModal();
+  if(!p)fp.elements.name.focus();
+}
+function purchaseLinks(){return curP?(SbyP[curP]||[]):pendP}
+function renderPurchaseLinks(){
+  const ids=purchaseLinks();
+  $("#pl").innerHTML=ids.length?ids.map(sid=>{const s=S[sid];const sh=curP?SHARE[curP+":"+sid]:null;
+    return `<div class="lrow"><span class="nm" data-opens="${sid}">${esc(s.name)} <small>· <span class="st-${s.status}">${SST[s.status]}</span> ${s.status==="sold"?eur(n(s.price)):n(s.list_price)?eur(n(s.list_price)):""}</small></span><small>${sh!=null&&ids.length>1?`part du coût ${eur(sh)}`:""}</small><button type="button" class="x" data-uns="${sid}" title="Retirer le lien">✕</button></div>`}).join("")
+    :`<div class="mut" style="font-size:13px">Pas encore lié à une vente.</div>`;
+  const cur=curP?P[curP]:{...read(fp),id:null};
+  const b=!ids.length?bestFor(cur,"purchase"):null;
+  $("#plSug").innerHTML=b?`<span class="sug" data-fsug="${b.id}"><span>💡 ${esc(b.name)}</span><b>lier</b></span>`:"";
+}
+function purchasePreview(){
+  const o=read(fp),t=n(o.price)+n(o.fees);
+  if(curP&&SbyP[curP]){const {got,open}=precovered(P[curP]);const r=got-t;
+    $("#pvlp").textContent=`Coût ${eur(t)} · récupéré ${eur(got)}${open?` · ${open} vente(s) en cours`:""}`;const b=$("#pvp");b.textContent=(r>=0?"+":"")+eur(r);b.className=r>=0?"pos":"neg"}
+  else{$("#pvlp").textContent="Coût total";const b=$("#pvp");b.textContent=eur(t);b.className=""}
+}
+fp.addEventListener("input",purchasePreview);
+fp.addEventListener("submit",async e=>{
+  e.preventDefault();const o=read(fp);
+  try{
+    if(curP)await put(`/api/purchases/${curP}`,o);else await post("/api/purchases",{...o,sale_ids:pendP});
+    dp.close();toast(curP?"Achat modifié":"Achat ajouté");load();
+  }catch(err){toast("Erreur : "+err.message)}
+});
+$("#pDel").onclick=async()=>{if(!curP||!confirm("Supprimer cet achat ? Les ventes liées ne sont pas supprimées."))return;await api(`/api/purchases/${curP}`,{method:"DELETE"});dp.close();toast("Supprimé");load()};
+$("#plAdd").onclick=()=>openPicker("purchase",curP,{name:fp.elements.name.value||"cet achat"});
+$("#plNew").onclick=async()=>{
+  let pid=curP;
+  try{
+    if(!pid){const o=read(fp);if(!o.name){toast("Donne d'abord un nom à l'achat");return}pid=(await post("/api/purchases",o)).id;}
+    else await put(`/api/purchases/${pid}`,read(fp));
+    await load();const p=P[pid];dp.close();
+    openSale(null,{purchase_ids:[pid],prefill:{name:p.name,category:p.category,platform:p.platform}});
+  }catch(err){toast("Erreur : "+err.message)}
 };
-// ----- events -----
-$("#list").addEventListener("click",e=>{
+$("#pl").addEventListener("click",async e=>{
+  const u=e.target.closest("[data-uns]");if(u){const sid=+u.dataset.uns;if(curP){await unlink(curP,sid);renderPurchaseLinks();purchasePreview()}else{pendP=pendP.filter(x=>x!==sid);renderPurchaseLinks()}return}
+  const o=e.target.closest("[data-opens]");if(o){dp.close();openSale(S[o.dataset.opens])}
+});
+$("#plSug").addEventListener("click",async e=>{const b=e.target.closest("[data-fsug]");if(!b)return;const sid=+b.dataset.fsug;
+  if(curP){await link(curP,sid)}else pendP.push(sid);renderPurchaseLinks();purchasePreview()});
+
+// ---- link picker ----
+let pick=null; // {kind:"sale"|"purchase", id, name}
+function openPicker(kind,id,{name}){
+  pick={kind,id,name};
+  $("#tl").textContent=kind==="sale"?`Lier « ${name} » à un achat`:`Lier « ${name} » à une vente`;
+  $("#lq").value="";renderPicker();dl.showModal();$("#lq").focus();
+}
+function renderPicker(){
+  const {kind,id}=pick, q=$("#lq").value.trim().toLowerCase();
+  const self=kind==="sale"?(id?S[id]:{...read(fs)}):(id?P[id]:{...read(fp)});
+  const already=new Set(kind==="sale"?(id?PbyS[id]||[]:pendS):(id?SbyP[id]||[]:pendP));
+  let pool=(kind==="sale"?D.purchases:D.sales).filter(o=>!q||o.name.toLowerCase().includes(q));
+  const sc=o=>sim(self.name,o.name)+(already.has(o.id)?5:0)+((kind==="sale"?!SbyP[o.id]:!PbyS[o.id])?.2:0);
+  pool=pool.map(o=>[sc(o),o]).sort((a,b)=>b[0]-a[0]||String(b[1].date||"").localeCompare(String(a[1].date||""))).slice(0,80);
+  $("#lc").innerHTML=pool.length?pool.map(([v,o])=>{
+    const on=already.has(o.id), used=kind==="sale"?(SbyP[o.id]||[]).filter(x=>x!==id).length:(PbyS[o.id]||[]).filter(x=>x!==id).length;
+    const price=kind==="sale"?eur(ptotal(o)):(o.status==="sold"?eur(n(o.price)):n(o.list_price)?eur(n(o.list_price))+" affiché":"");
+    return `<div class="cand ${on?"on":""}" data-c="${o.id}"><div><div>${on?"✓ ":""}${esc(o.name)}${!on&&v>=.75?`<span class="why">ressemblant</span>`:""}</div>
+      <div class="meta">${pfs(o.platform)} ${fmtD(o.date||o.list_date)}${kind==="purchase"?` · <span class="st-${o.status}">${SST[o.status]}</span>`:""}${used?` · déjà lié à ${used} ${kind==="sale"?"vente":"achat"}${used>1?"s":""}`:""}</div></div>
+      <div style="text-align:right;font-variant-numeric:tabular-nums">${price}<div class="meta">${on?"cliquer pour retirer":"cliquer pour lier"}</div></div></div>`}).join("")
+    :`<div class="empty">Rien ne correspond.</div>`;
+}
+$("#lq").addEventListener("input",renderPicker);
+$("#lc").addEventListener("click",async e=>{
+  const c=e.target.closest("[data-c]");if(!c)return;const oid=+c.dataset.c,{kind,id}=pick;
+  const [pid,sid]=kind==="sale"?[oid,id]:[id,oid];
+  if(id){
+    const on=(kind==="sale"?PbyS[id]||[]:SbyP[id]||[]).includes(oid);
+    try{on?await unlink(pid,sid):await link(pid,sid)}catch(err){toast("Erreur : "+err.message);return}
+  }else{ // record not saved yet: remember the link
+    const arr=kind==="sale"?pendS:pendP, k=arr.indexOf(oid);
+    k>=0?arr.splice(k,1):arr.push(oid);
+  }
+  renderPicker();
+  if(kind==="sale"){renderSaleLinks();salePreview()}else{renderPurchaseLinks();purchasePreview()}
+});
+
+// ================= list events =================
+$("#list").addEventListener("click",async e=>{
   if(e.target.closest(".stsel"))return;
-  const op=e.target.closest("[data-open]"); if(op){e.stopPropagation();openForm(BYID[op.dataset.open]);return}
-  const gr=e.target.closest("[data-group]"); if(gr){e.stopPropagation();group=+gr.dataset.group;tab="all";$("#q").value="";renderTabs();renderList();scrollTo({top:$("#tabs").offsetTop-10,behavior:"smooth"});return}
-  const s=e.target.closest("[data-sell]"); if(s){e.stopPropagation();openForm(items.find(i=>i.id==s.dataset.sell),{sell:true});return}
-  const r=e.target.closest(".item"); if(r)openForm(items.find(i=>i.id==r.dataset.id));
+  const sg=e.target.closest("[data-sug]");if(sg){e.stopPropagation();const [pid,sid]=sg.dataset.sug.split(":").map(Number);try{await link(pid,sid);toast(`Lié : ${P[pid].name} → ${S[sid].name}`)}catch(err){toast("Erreur : "+err.message)}return}
+  const pk=e.target.closest("[data-pick]");if(pk){e.stopPropagation();const [k,id]=pk.dataset.pick.split(":");openPicker(k==="s"?"sale":"purchase",+id,{name:(k==="s"?S:P)[id].name});return}
+  const op=e.target.closest("[data-openp]");if(op){e.stopPropagation();openPurchase(P[op.dataset.openp]);return}
+  const os=e.target.closest("[data-opens]");if(os){e.stopPropagation();openSale(S[os.dataset.opens]);return}
+  const sl=e.target.closest("[data-sell]");if(sl){e.stopPropagation();openSale(S[sl.dataset.sell],{sell:true});return}
+  const ns=e.target.closest("[data-newsale]");if(ns){e.stopPropagation();const p=P[ns.dataset.newsale];openSale(null,{purchase_ids:[p.id],prefill:{name:p.name,category:p.category,platform:p.platform}});return}
+  const r=e.target.closest(".item");if(!r)return;
+  if(r.dataset.s)openSale(S[r.dataset.s]);else openPurchase(P[r.dataset.p]);
 });
 $("#list").addEventListener("change",async e=>{
-  const s=e.target.closest(".stsel");if(!s)return;
-  const it=BYID[s.dataset.st], st=s.value;
-  if(st==="sold"){s.value=it.status;openForm(it,{sell:true});return}   // a sale needs price & date
-  try{
-    await api(`/api/items/${it.id}`,{method:"PUT",body:JSON.stringify({status:st,...(st==="listed"&&!it.list_date?{list_date:today()}:{})})});
-    toast(`${it.name} → ${ST[st]}`);load();
-  }catch(err){s.value=it.status;toast("Erreur : "+err.message)}
+  const ss=e.target.closest("[data-sst]");
+  if(ss){const s=S[ss.dataset.sst];if(ss.value==="sold"){ss.value=s.status;openSale(s,{sell:true});return}
+    try{await put(`/api/sales/${s.id}`,{status:ss.value});toast(`${s.name} → ${SST[ss.value]}`);load()}catch(err){ss.value=s.status;toast("Erreur : "+err.message)}return}
+  const ps=e.target.closest("[data-pst]");
+  if(ps){const p=P[ps.dataset.pst];try{await put(`/api/purchases/${p.id}`,{status:ps.value});toast(`${p.name} → ${PST[ps.value]}`);load()}catch(err){ps.value=p.status;toast("Erreur : "+err.message)}}
 });
-$("#gchip").addEventListener("click",e=>{if(e.target.closest("[data-ungroup]")){group=null;renderList()}});
-$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){tab=b.dataset.t;renderTabs();renderList()}});
+$("#views").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;view=b.dataset.v;sub="all";renderViews();renderList()});
+$("#subtabs").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;sub=b.dataset.s;renderViews();renderList()});
+$("#hint").addEventListener("click",e=>{if(e.target.closest("#showSug")){view="sales";sub="nolink";renderViews();renderList();$("#views").scrollIntoView({behavior:"smooth"})}});
 $("#period").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;document.querySelectorAll("#period button").forEach(x=>x.classList.toggle("on",x===b));renderKpis();renderPlat()});
-$("#q").addEventListener("input",renderList); $("#pf").addEventListener("change",renderList);
+$("#q").addEventListener("input",renderList);$("#pf").addEventListener("change",renderList);
 function toggleMenu(e){e.stopPropagation();$("#menu").classList.toggle("open")}
 document.addEventListener("click",()=>$("#menu").classList.remove("open"));
 $("#imp").addEventListener("change",async e=>{
-  const f=e.target.files[0]; if(!f)return;
+  const f=e.target.files[0];if(!f)return;
   try{
-    const data=JSON.parse(await f.text()); const list=data.items||data;
-    const replace=confirm(`${list.length} article(s) dans le fichier.\n\nOK = REMPLACER toutes les données actuelles\nAnnuler = AJOUTER aux données existantes`);
-    const r=await api("/api/import",{method:"POST",body:JSON.stringify({items:list,replace})});
-    toast(`${r.imported} article(s) importé(s)`); load();
+    const data=JSON.parse(await f.text());
+    const nb=data.items?data.items.length:(data.purchases||[]).length+(data.sales||[]).length;
+    const replace=confirm(`${nb} élément(s) dans le fichier.\n\nOK = REMPLACER toutes les données actuelles\nAnnuler = AJOUTER aux données existantes`);
+    const r=await post("/api/import",{...(Array.isArray(data)?{items:data}:data),replace});
+    toast(`${r.imported} élément(s) importé(s)`);load();
   }catch(err){toast("Import impossible : "+err.message)}
   e.target.value="";
 });
 
-// ----- server update -----
+// ================= server update =================
 const upd=$("#upd");
-async function showVersion(){try{const v=await api("/api/version");$("#ver").textContent=v.supported?`Version ${v.commit} · ${new Date(v.date).toLocaleDateString("fr-FR")}`:"Installé sans git"}catch{}}
+async function showVersion(){try{const v=await api("/api/version");$("#ver").textContent=`FlipDesk ${v.version||""}`+(v.supported?` · ${v.commit} · ${fmtD(v.date)}`:" · installé sans git")}catch{}}
 async function openUpdate(){
   const body=$("#updbody"),go=$("#updgo");go.style.display="none";
   body.innerHTML="Recherche de mises à jour…";upd.showModal();
   try{
-    const r=await api("/api/update/check",{method:"POST"});
-    const cur=`<div style="color:var(--mut);font-size:13px;margin-bottom:10px">Version installée : <b>${esc(r.commit)}</b> du ${new Date(r.date).toLocaleDateString("fr-FR")}</div>`;
+    const r=await post("/api/update/check",{});
+    const cur=`<div class="mut" style="font-size:13px;margin-bottom:10px">Version installée : <b>${esc(r.commit)}</b> du ${fmtD(r.date)}</div>`;
     if(!r.pending.length){body.innerHTML=cur+`<div class="pos">✓ FlipDesk est à jour.</div>`;return}
     body.innerHTML=cur+`<div style="margin-bottom:8px"><b>${r.pending.length} mise${r.pending.length>1?"s":""} à jour disponible${r.pending.length>1?"s":""} :</b></div>
-      <ul style="margin:0;padding-left:18px;display:grid;gap:4px">${r.pending.map(l=>{const [h,d,...m]=l.split(" ");return `<li>${esc(m.join(" "))} <span style="color:var(--mut);font-size:12px">${esc(d)}</span></li>`}).join("")}</ul>
-      <div style="color:var(--mut);font-size:12.5px;margin-top:12px">Tes données ne sont pas touchées. Le serveur redémarre en quelques secondes.</div>`;
+      <ul style="margin:0;padding-left:18px;display:grid;gap:4px">${r.pending.map(l=>{const [h,d,...m]=l.split(" ");return `<li>${esc(m.join(" "))} <span class="mut" style="font-size:12px">${esc(d)}</span></li>`}).join("")}</ul>
+      <div class="mut" style="font-size:12.5px;margin-top:12px">Tes données ne sont pas touchées. Le serveur redémarre en quelques secondes.</div>`;
     go.style.display="";
   }catch(e){body.innerHTML=`<div class="neg">${esc(e.message)}</div>`}
 }
 $("#updgo").onclick=async()=>{
-  const body=$("#updbody"),go=$("#updgo");go.style.display="none";
-  body.innerHTML="Installation…";
+  const body=$("#updbody");$("#updgo").style.display="none";body.innerHTML="Installation…";
   try{
-    const r=await api("/api/update",{method:"POST"});
+    const r=await post("/api/update",{});
     if(!r.restarting){body.innerHTML=`<div class="pos">✓ Déjà à jour.</div>`;return}
     body.innerHTML="Redémarrage du serveur…";
     await new Promise(res=>setTimeout(res,1500));

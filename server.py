@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""FlipDesk - suivi achats / reventes Leboncoin & Vinted.
+"""FlipDesk v2 - suivi achats / reventes Leboncoin & Vinted.
+
+Data model: purchases (achats) and sales (ventes / annonces) are separate records,
+connected by links. One purchase can feed several sales (a lot), one sale can use
+several purchases (parts). Each purchase's cost is split over its linked sales.
 
 Zero dependency: Python 3.8+ standard library + SQLite.
 Config via environment variables:
@@ -23,6 +27,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import model
 import sync
 
 HERE = Path(__file__).resolve().parent
@@ -31,49 +36,7 @@ HOST = os.environ.get("FLIPDESK_HOST", "0.0.0.0")
 DB_PATH = Path(os.environ.get("FLIPDESK_DB", str(HERE / "data" / "flipdesk.db")))
 PASSWORD = os.environ.get("FLIPDESK_PASSWORD", "")
 STATIC = HERE / "static"
-
-FIELDS = {
-    # name: type
-    "name": str, "category": str, "condition": str,
-    "buy_platform": str, "buy_date": str, "buy_price": float, "buy_fees": float,
-    "repair_cost": float,
-    "status": str,
-    "list_price": float, "list_date": str,
-    "sell_platform": str, "sell_date": str, "sell_price": float,
-    "sell_fees": float, "ship_cost": float,
-    "url": str, "notes": str, "lot": str, "parent_id": int,
-}
-STATUSES = {"stock", "listed", "sold", "kept", "parts"}
-
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  category TEXT DEFAULT '',
-  condition TEXT DEFAULT '',
-  buy_platform TEXT DEFAULT '',
-  buy_date TEXT DEFAULT '',
-  buy_price REAL DEFAULT 0,
-  buy_fees REAL DEFAULT 0,
-  repair_cost REAL DEFAULT 0,
-  status TEXT DEFAULT 'stock',
-  list_price REAL DEFAULT 0,
-  list_date TEXT DEFAULT '',
-  sell_platform TEXT DEFAULT '',
-  sell_date TEXT DEFAULT '',
-  sell_price REAL DEFAULT 0,
-  sell_fees REAL DEFAULT 0,
-  ship_cost REAL DEFAULT 0,
-  url TEXT DEFAULT '',
-  notes TEXT DEFAULT '',
-  lot TEXT DEFAULT '',
-  parent_id INTEGER,
-  ext_ids TEXT DEFAULT '',
-  created_at TEXT,
-  updated_at TEXT
-);
-CREATE TABLE IF NOT EXISTS ignored (ext TEXT PRIMARY KEY);
-"""
+VERSION = "2.0"
 
 _lock = threading.Lock()
 
@@ -81,86 +44,18 @@ _lock = threading.Lock()
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
-
-
-def lots_to_parents(c):
-    """Convert old free-text lot names into parent links: in each lot, the most
-    expensive item without a parent becomes the origin, the others point to it."""
-    groups = {}
-    for r in c.execute("SELECT id, lot, parent_id, buy_price+buy_fees+repair_cost AS cost FROM items WHERE lot != ''"):
-        groups.setdefault(r["lot"], []).append(r)
-    for rows in groups.values():
-        roots = [r for r in rows if not r["parent_id"]] or rows
-        root = max(roots, key=lambda r: (r["cost"] or 0, -r["id"]))["id"]
-        for r in rows:
-            if r["id"] != root and not r["parent_id"]:
-                c.execute("UPDATE items SET parent_id=? WHERE id=?", (root, r["id"]))
-    c.execute("UPDATE items SET lot='' WHERE lot != ''")
-
-
-def resolve_parent(c, iid, parent):
-    """Validate a parent link and keep lots one level deep (child -> origin)."""
-    if parent is None:
-        return None
-    row = c.execute("SELECT id, parent_id FROM items WHERE id=?", (parent,)).fetchone()
-    if not row:
-        raise ValueError("Article d'origine introuvable")
-    root = row["parent_id"] or row["id"]
-    if iid is not None and root == iid:
-        raise ValueError("Un article ne peut pas être son propre article d'origine")
-    return root
 
 
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with db() as c:
-        c.executescript(SCHEMA)
-        cols = {r[1] for r in c.execute("PRAGMA table_info(items)")}
-        if "lot" not in cols:  # migration for databases created before lots existed
-            c.execute("ALTER TABLE items ADD COLUMN lot TEXT DEFAULT ''")
-        if "parent_id" not in cols:
-            c.execute("ALTER TABLE items ADD COLUMN parent_id INTEGER")
-        if "ext_ids" not in cols:
-            c.execute("ALTER TABLE items ADD COLUMN ext_ids TEXT DEFAULT ''")
-            sync.ext_from_notes(c)  # link items imported earlier to their Vinted/Leboncoin ids
-        lots_to_parents(c)
+        model.migrate(c)
 
 
-def clean(payload, partial=False):
-    out = {}
-    for k, typ in FIELDS.items():
-        if k not in payload:
-            continue
-        v = payload[k]
-        if typ is int:
-            if v in (None, "", 0, "0"):
-                v = None
-            else:
-                try:
-                    v = int(str(v).lstrip("#"))
-                except ValueError:
-                    raise ValueError(f"Valeur invalide pour {k}")
-        elif typ is float:
-            if v in (None, ""):
-                v = 0.0
-            else:
-                try:
-                    v = round(float(str(v).replace(",", ".")), 2)
-                except ValueError:
-                    raise ValueError(f"Valeur invalide pour {k}")
-        else:
-            v = "" if v is None else str(v).strip()[:2000]
-            if k.endswith("_date") and v and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
-                raise ValueError(f"Date invalide pour {k} (AAAA-MM-JJ)")
-        out[k] = v
-    if "status" in out and out["status"] not in STATUSES:
-        raise ValueError("Statut invalide")
-    if not partial and not out.get("name"):
-        raise ValueError("Le nom est obligatoire")
-    if "name" in out and not out["name"]:
-        raise ValueError("Le nom est obligatoire")
-    return out
+def now():
+    return datetime.now().isoformat(timespec="seconds")
 
 
 # ---------- self-update (when installed as a git clone) ----------
@@ -178,10 +73,10 @@ def git_supported():
 
 def version_info():
     if not git_supported():
-        return {"supported": False}
+        return {"supported": False, "version": VERSION}
     _, out = git("log", "-1", "--format=%h|%cs|%s")
     h, d, msg = (out.split("|", 2) + ["", ""])[:3]
-    return {"supported": True, "commit": h, "date": d, "message": msg}
+    return {"supported": True, "version": VERSION, "commit": h, "date": d, "message": msg}
 
 
 def pending_updates():
@@ -201,16 +96,11 @@ def restart_soon():
     threading.Thread(target=go, daemon=True).start()
 
 
-def now():
-    return datetime.now().isoformat(timespec="seconds")
-
-
-def row_dict(r):
-    return {k: r[k] for k in r.keys()}
+ROUTE = re.compile(r"^/api/(purchases|sales)(?:/(\d+))?$")
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FlipDesk/1.0"
+    server_version = "FlipDesk/" + VERSION
 
     def log_message(self, fmt, *args):
         pass  # quiet
@@ -257,13 +147,15 @@ class Handler(BaseHTTPRequestHandler):
     def _guard(self):
         if self._auth_ok():
             return True
-        self._send(401, {"error": "auth"},
-                   extra={"WWW-Authenticate": 'Basic realm="FlipDesk"'})
+        self._send(401, {"error": "auth"}, extra={"WWW-Authenticate": 'Basic realm="FlipDesk"'})
         return False
 
-    def _item_id(self):
-        m = re.fullmatch(r"/api/items/(\d+)", self.path.split("?")[0])
-        return int(m.group(1)) if m else None
+    def _path(self):
+        return self.path.split("?")[0]
+
+    def _query(self):
+        from urllib.parse import parse_qs
+        return {k: v[0] for k, v in parse_qs(self.path.partition("?")[2]).items()}
 
     # ---------- routes ----------
     def do_OPTIONS(self):
@@ -280,45 +172,37 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self._guard():
             return
-        path = self.path.split("?")[0]
+        path = self._path()
         if path == "/api/health":
-            return self._send(200, {"ok": True})
+            return self._send(200, {"ok": True, "version": VERSION})
         if path == "/api/version":
             return self._send(200, version_info())
-        if path == "/api/items":
+        if path == "/api/data":
             with db() as c:
-                rows = c.execute("SELECT * FROM items ORDER BY COALESCE(NULLIF(sell_date,''), NULLIF(buy_date,''), created_at) DESC, id DESC").fetchall()
-            return self._send(200, [row_dict(r) for r in rows])
+                return self._send(200, model.dump(c))
         if path == "/api/backup.json":
             with db() as c:
-                rows = [row_dict(r) for r in c.execute("SELECT * FROM items ORDER BY id")]
+                data = {"version": 2, "exported_at": now(), **model.dump(c)}
             fname = f"flipdesk-backup-{datetime.now():%Y%m%d}.json"
-            return self._send(200, {"version": 1, "exported_at": now(), "items": rows},
-                              extra={"Content-Disposition": f'attachment; filename="{fname}"'})
+            return self._send(200, data, extra={"Content-Disposition": f'attachment; filename="{fname}"'})
         if path == "/api/export.csv":
+            kind = self._query().get("type", "sales")
             with db() as c:
-                rows = [row_dict(r) for r in c.execute("SELECT * FROM items ORDER BY id")]
+                rows, cols = model.export_rows(c, kind)
             buf = io.StringIO()
-            cols = ["id"] + list(FIELDS.keys()) + ["profit"]
             w = csv.writer(buf, delimiter=";")
             w.writerow(cols)
             for r in rows:
-                cost = (r["buy_price"] or 0) + (r["buy_fees"] or 0) + (r["repair_cost"] or 0)
-                profit = ""
-                if r["status"] == "sold":
-                    profit = round((r["sell_price"] or 0) - (r["sell_fees"] or 0) - (r["ship_cost"] or 0) - cost, 2)
-                vals = [r.get(k, "") for k in cols[:-1]] + [profit]
-                w.writerow([str(v).replace(".", ",") if isinstance(v, float) else v for v in vals])
-            data = "﻿" + buf.getvalue()  # BOM so Excel reads accents
-            fname = f"flipdesk-{datetime.now():%Y%m%d}.csv"
-            return self._send(200, data, "text/csv; charset=utf-8",
+                w.writerow([str(r[k]).replace(".", ",") if isinstance(r[k], float) else r[k] for k in cols])
+            fname = f"flipdesk-{'achats' if kind == 'purchases' else 'ventes'}-{datetime.now():%Y%m%d}.csv"
+            return self._send(200, "﻿" + buf.getvalue(), "text/csv; charset=utf-8",
                               {"Content-Disposition": f'attachment; filename="{fname}"'})
         if path.startswith("/api/"):
             return self._err(404, "not found")
         # static
         rel = "index.html" if path in ("/", "") else path.lstrip("/")
         f = (STATIC / rel).resolve()
-        if STATIC not in f.parents and f != STATIC / "index.html" or not f.is_file():
+        if STATIC not in f.parents or not f.is_file():
             f = STATIC / "index.html"
         ctype = {
             ".html": "text/html; charset=utf-8", ".js": "text/javascript",
@@ -330,21 +214,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._guard():
             return
-        path = self.path.split("?")[0]
+        path = self._path()
         try:
             data = self._json_body()
-            if path == "/api/items":
-                item = clean(data)
-                item.setdefault("status", "stock")
-                item["created_at"] = item["updated_at"] = now()
+            m = ROUTE.match(path)
+            if m and not m.group(2):
                 with _lock, db() as c:
-                    if "parent_id" in item:
-                        item["parent_id"] = resolve_parent(c, None, item["parent_id"])
-                    cols = ",".join(item)
-                    cur = c.execute(f"INSERT INTO items ({cols}) VALUES ({','.join('?' * len(item))})",
-                                    list(item.values()))
-                    r = c.execute("SELECT * FROM items WHERE id=?", (cur.lastrowid,)).fetchone()
-                return self._send(201, row_dict(r))
+                    row = model.create(c, m.group(1), data, now())
+                return self._send(201, row)
+            if path in ("/api/link", "/api/unlink"):
+                with _lock, db() as c:
+                    (model.link if path == "/api/link" else model.unlink)(c, int(data["purchase_id"]), int(data["sale_id"]))
+                return self._send(200, {"ok": True})
+            if path == "/api/import":
+                with _lock, db() as c:
+                    n = model.import_backup(c, data, now())
+                return self._send(200, {"imported": n})
             if path == "/api/sync":
                 with _lock, db() as c:
                     rep = sync.run(c, data, now())
@@ -365,87 +250,41 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err(500, str(e))
                 restart_soon()
                 return self._send(200, {"updated": True, "restarting": True, "applied": pend})
-            if path == "/api/import":
-                items = data.get("items", data) if isinstance(data, dict) else data
-                replace = isinstance(data, dict) and data.get("replace")
-                if not isinstance(items, list):
-                    raise ValueError("Format de sauvegarde invalide")
-                cleaned = []
-                for it in items:
-                    ci = clean(it)
-                    ci.setdefault("status", "stock")
-                    ci["created_at"] = it.get("created_at") or now()
-                    ci["updated_at"] = now()
-                    old_parent = ci.pop("parent_id", None)
-                    if it.get("ext_ids"):
-                        ci["ext_ids"] = " " + " ".join(str(it["ext_ids"]).split()) + " "
-                    cleaned.append((it.get("id"), old_parent, ci))
-                with _lock, db() as c:
-                    if replace:
-                        c.execute("DELETE FROM items")
-                    idmap, links = {}, []
-                    for old_id, old_parent, ci in cleaned:
-                        cur = c.execute(f"INSERT INTO items ({','.join(ci)}) VALUES ({','.join('?' * len(ci))})",
-                                        list(ci.values()))
-                        if old_id is not None:
-                            idmap[old_id] = cur.lastrowid
-                        if old_parent:
-                            links.append((cur.lastrowid, old_parent))
-                    for new_id, old_parent in links:
-                        if old_parent in idmap and idmap[old_parent] != new_id:
-                            c.execute("UPDATE items SET parent_id=? WHERE id=?", (idmap[old_parent], new_id))
-                    lots_to_parents(c)
-                    sync.ext_from_notes(c)
-                return self._send(200, {"imported": len(cleaned)})
             return self._err(404, "not found")
         except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
-            return self._err(400, f"Requête invalide : {e}")
+            return self._err(400, str(e) if isinstance(e, ValueError) else f"Requête invalide : {e}")
 
     def do_PUT(self):
         if not self._guard():
             return
-        iid = self._item_id()
-        if iid is None:
+        m = ROUTE.match(self._path())
+        if not m or not m.group(2):
             return self._err(404, "not found")
         try:
-            item = clean(self._json_body(), partial=True)
-        except (ValueError, json.JSONDecodeError) as e:
+            data = self._json_body()
+            with _lock, db() as c:
+                row = model.update(c, m.group(1), int(m.group(2)), data, now())
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
             return self._err(400, str(e))
-        item["updated_at"] = now()
-        with _lock, db() as c:
-            if "parent_id" in item:
-                try:
-                    item["parent_id"] = resolve_parent(c, iid, item["parent_id"])
-                except ValueError as e:
-                    return self._err(400, str(e))
-                if item["parent_id"]:  # this item joins a lot: its own children follow it
-                    c.execute("UPDATE items SET parent_id=? WHERE parent_id=?", (item["parent_id"], iid))
-            sets = ",".join(f"{k}=?" for k in item)
-            cur = c.execute(f"UPDATE items SET {sets} WHERE id=?", list(item.values()) + [iid])
-            if cur.rowcount == 0:
-                return self._err(404, "not found")
-            r = c.execute("SELECT * FROM items WHERE id=?", (iid,)).fetchone()
-        return self._send(200, row_dict(r))
+        if row is None:
+            return self._err(404, "not found")
+        return self._send(200, row)
 
     def do_DELETE(self):
         if not self._guard():
             return
-        iid = self._item_id()
-        if iid is None:
+        m = ROUTE.match(self._path())
+        if not m or not m.group(2):
             return self._err(404, "not found")
         with _lock, db() as c:
-            row = c.execute("SELECT ext_ids FROM items WHERE id=?", (iid,)).fetchone()
-            for e in (row["ext_ids"] or "").split() if row else []:
-                c.execute("INSERT OR IGNORE INTO ignored (ext) VALUES (?)", (e,))
-            c.execute("DELETE FROM items WHERE id=?", (iid,))
-            c.execute("UPDATE items SET parent_id=NULL WHERE parent_id=?", (iid,))
-        return self._send(200, {"deleted": iid})
+            model.delete(c, m.group(1), int(m.group(2)))
+        return self._send(200, {"deleted": int(m.group(2))})
 
 
 def main():
     init_db()
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"FlipDesk sur http://{HOST}:{PORT}  (db: {DB_PATH}){'  [mot de passe actif]' if PASSWORD else ''}")
+    print(f"FlipDesk {VERSION} sur http://{HOST}:{PORT}  (db: {DB_PATH}){'  [mot de passe actif]' if PASSWORD else ''}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
