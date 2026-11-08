@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FlipDesk</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2322c55e'/><path d='M9 20l5-5 4 4 6-8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<style>
+:root{
+  --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--txt:#e7e9ee;--mut:#8b93a3;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;
+  --lbc:#ff6e14;--vinted:#09b1ba;--other:#a78bfa;--r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--blue)}
+.wrap{max-width:1180px;margin:0 auto;padding:16px 16px calc(90px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em;margin-right:auto}
+.logo i{width:30px;height:30px;border-radius:9px;background:var(--green);display:grid;place-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3a4150}
+.btn.primary{background:var(--green);border-color:var(--green);color:#06260f;font-weight:700}
+.btn.danger{color:var(--red)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 11px;border-radius:7px;cursor:pointer;color:var(--mut)}
+.seg button.on{background:var(--panel2);color:var(--txt);box-shadow:0 0 0 1px var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
+.kpi .l{color:var(--mut);font-size:12.5px}
+.kpi .v{font-size:22px;font-weight:750;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{color:var(--mut);font-size:12px}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.plat{display:grid;gap:10px}
+.prow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%}
+.bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;margin-top:4px}
+.bar>div{height:100%}
+.toolbar{display:flex;gap:8px;align-items:center;margin:18px 0 10px;flex-wrap:wrap}
+.toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
+.toolbar input{flex:1;min-width:160px}
+.list{display:grid;gap:8px}
+.item{display:grid;grid-template-columns:1fr 130px 130px 110px 92px;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer}
+.item:hover{border-color:#3a4150}
+.item .n{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .meta{color:var(--mut);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.item .c{font-variant-numeric:tabular-nums;font-size:14px}
+.item .c small{display:block;color:var(--mut);font-size:11.5px}
+.item .p{font-weight:750;text-align:right;font-variant-numeric:tabular-nums}
+.item .show-m{display:none}
+.tag{font-size:11.5px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+.st-stock{color:var(--blue);border-color:#294466}.st-listed{color:var(--amber);border-color:#5a4415}
+.st-sold{color:var(--green);border-color:#1d4d2e}.st-kept{color:var(--mut)}
+.pf{font-weight:600}
+.empty{color:var(--mut);text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:12px}
+.fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--green);color:#06260f;border:0;font-size:30px;font-weight:600;box-shadow:0 8px 24px #0008;cursor:pointer;display:none}
+/* modal */
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:18px;padding:0;width:min(680px,96vw);max-height:92vh}
+dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
+.mh{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.mh h2{margin:0;font-size:17px;margin-right:auto}
+.mb{padding:16px 18px;overflow:auto}
+.mf{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 12px}
+legend{padding:0 6px;color:var(--mut);font-size:13px;font-weight:600}
+.f{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.f label{display:grid;gap:4px;font-size:12.5px;color:var(--mut)}
+.f .w2{grid-column:span 2}.f .w4{grid-column:1/-1}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;color:var(--txt);width:100%}
+.f textarea{min-height:60px;resize:vertical}
+.preview{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:12px}
+.preview b{font-size:20px;font-variant-numeric:tabular-nums}
+.menu{position:relative}
+.menu .dd{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;display:none;min-width:220px;z-index:10;box-shadow:0 10px 30px #0008}
+.menu.open .dd{display:block}
+.dd button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 11px;border-radius:8px;cursor:pointer}
+.dd button:hover{background:var(--panel)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;z-index:99}
+.toast.on{opacity:1}
+svg text{fill:var(--mut);font-size:10.5px}
+@media (max-width:900px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .wrap{padding:12px 12px calc(96px + env(safe-area-inset-bottom))}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi .v{font-size:19px}
+  .item{grid-template-columns:1fr auto;gap:4px 10px}
+  .item .c{display:none}
+  .item .c.show-m{display:block;grid-column:1;grid-row:2;font-size:12.5px;color:var(--mut)}
+  .item .p{grid-row:1;grid-column:2}
+  .item .c.act:has(button){display:block;grid-column:2;grid-row:2;text-align:right}
+  #tabs{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .toolbar input{min-width:0;flex:1 1 100%}
+  .toolbar select{flex:1 1 100%}
+  .f{grid-template-columns:1fr 1fr}
+  .f .w2{grid-column:1/-1}
+  header .btn.primary{display:none}
+  .mf{padding:12px;gap:6px}.mf .btn{padding:9px 10px}
+  .fab{display:block}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><i><svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-8" stroke="#06260f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>FlipDesk</div>
+    <div class="seg" id="period">
+      <button data-p="all" class="on">Tout</button>
+      <button data-p="year">Cette année</button>
+      <button data-p="month">Ce mois</button>
+      <button data-p="30">30 j</button>
+    </div>
+    <button class="btn primary" onclick="openForm()">+ Nouvel achat</button>
+    <div class="menu" id="menu">
+      <button class="btn" onclick="toggleMenu(event)">⋯</button>
+      <div class="dd">
+        <button onclick="location.href='/api/export.csv'">📊 Exporter en CSV (Excel)</button>
+        <button onclick="location.href='/api/backup.json'">💾 Télécharger une sauvegarde</button>
+        <button onclick="document.getElementById('imp').click()">📥 Restaurer / importer…</button>
+      </div>
+    </div>
+    <input type="file" id="imp" accept=".json,application/json" hidden>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="grid2">
+    <div class="card"><h3>Bénéfice net par mois</h3><div id="chart"></div></div>
+    <div class="card"><h3>Par plateforme de vente</h3><div class="plat" id="plat"></div></div>
+  </section>
+
+  <div class="toolbar">
+    <div class="seg" id="tabs"></div>
+    <input id="q" placeholder="Rechercher (nom, catégorie, notes)…">
+    <select id="pf"><option value="">Toutes plateformes</option></select>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<button class="fab" onclick="openForm()" aria-label="Nouvel achat">+</button>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <div class="mh"><h2 id="ftitle">Nouvel achat</h2><button type="button" class="btn sm" onclick="dlg.close()">✕</button></div>
+    <div class="mb">
+      <div class="preview"><span id="pvl">Bénéfice estimé</span><b id="pv">0,00 €</b></div>
+      <fieldset><legend>Article</legend><div class="f">
+        <label class="w2">Nom *<input name="name" required placeholder="ex. Manette DualSense blanche"></label>
+        <label>Catégorie<input name="category" list="cats" placeholder="Manettes, Téléphones…"></label>
+        <label>Statut<select name="status">
+          <option value="stock">En stock</option><option value="listed">En vente</option>
+          <option value="sold">Vendu</option><option value="kept">Gardé</option></select></label>
+        <label class="w2">État<input name="condition" list="conds" placeholder="Très bon état, HS, pour pièces…"></label>
+        <label class="w2">Lien annonce<input name="url" type="url" placeholder="https://…"></label>
+      </div></fieldset>
+      <fieldset><legend>Achat</legend><div class="f">
+        <label>Acheté sur<select name="buy_platform" data-plat="buy"></select></label>
+        <label>Date<input name="buy_date" type="date"></label>
+        <label>Prix payé (€)<input name="buy_price" inputmode="decimal" placeholder="0"></label>
+        <label>Frais + port (€)<input name="buy_fees" inputmode="decimal" placeholder="0"></label>
+        <label class="w2">Pièces / réparation (€)<input name="repair_cost" inputmode="decimal" placeholder="0"></label>
+        <label class="w2">Prix affiché en vente (€)<input name="list_price" inputmode="decimal" placeholder="0"></label>
+      </div></fieldset>
+      <fieldset id="sellset"><legend>Vente</legend><div class="f">
+        <label>Vendu sur<select name="sell_platform" data-plat="sell"></select></label>
+        <label>Date<input name="sell_date" type="date"></label>
+        <label>Prix de vente (€)<input name="sell_price" inputmode="decimal" placeholder="0"></label>
+        <label>Frais vendeur (€)<input name="sell_fees" inputmode="decimal" placeholder="0"></label>
+        <label class="w2">Port payé par toi (€)<input name="ship_cost" inputmode="decimal" placeholder="0"></label>
+      </div></fieldset>
+      <div class="f"><label class="w4">Notes<textarea name="notes" placeholder="Défauts, échanges avec l'acheteur, n° de suivi…"></textarea></label></div>
+    </div>
+    <div class="mf">
+      <button type="button" class="btn danger" id="del">Supprimer</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn" id="dup">Dupliquer</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+<datalist id="cats"></datalist>
+<datalist id="conds"><option>Neuf</option><option>Très bon état</option><option>Bon état</option><option>État correct</option><option>À réparer</option><option>Pour pièces</option></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+const PLATS = ["Leboncoin","Vinted","eBay","Facebook","Main propre","Autre"];
+const PCOL = {Leboncoin:"var(--lbc)",Vinted:"var(--vinted)"};
+const ST = {stock:"En stock",listed:"En vente",sold:"Vendu",kept:"Gardé"};
+const NUM = ["buy_price","buy_fees","repair_cost","list_price","sell_price","sell_fees","ship_cost"];
+let items=[], period="all", tab="all", editId=null;
+const $=s=>document.querySelector(s), dlg=$("#dlg"), form=$("#form");
+const eur=v=>(v<0?"−":"")+Math.abs(v).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const eur0=v=>(v<0?"−":"")+Math.abs(v).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const n=v=>+v||0;
+const cost=i=>n(i.buy_price)+n(i.buy_fees)+n(i.repair_cost);
+const net=i=>n(i.sell_price)-n(i.sell_fees)-n(i.ship_cost);
+const profit=i=>net(i)-cost(i);
+const days=(a,b)=>a&&b?Math.round((new Date(b)-new Date(a))/864e5):null;
+const pcolor=p=>PCOL[p]||"var(--other)";
+
+async function api(path,opt={}){
+  const r=await fetch(path,{headers:{"Content-Type":"application/json"},...opt});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||r.statusText);
+  return j;
+}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200)}
+async function load(){items=await api("/api/items");render()}
+
+function inPeriod(d){
+  if(period==="all")return true; if(!d)return false;
+  const x=new Date(d),now=new Date();
+  if(period==="year")return x.getFullYear()===now.getFullYear();
+  if(period==="month")return x.getFullYear()===now.getFullYear()&&x.getMonth()===now.getMonth();
+  return (now-x)/864e5<=30;
+}
+
+function render(){renderKpis();renderChart();renderPlat();renderTabs();renderList();
+  $("#cats").innerHTML=[...new Set(items.map(i=>i.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join("");}
+
+function renderKpis(){
+  const sold=items.filter(i=>i.status==="sold"&&inPeriod(i.sell_date));
+  const spent=items.filter(i=>inPeriod(i.buy_date)).reduce((s,i)=>s+cost(i),0);
+  const rev=sold.reduce((s,i)=>s+n(i.sell_price),0);
+  const pr=sold.reduce((s,i)=>s+profit(i),0);
+  const c=sold.reduce((s,i)=>s+cost(i),0);
+  const stock=items.filter(i=>i.status==="stock"||i.status==="listed");
+  const stockV=stock.reduce((s,i)=>s+cost(i),0);
+  const listedV=stock.filter(i=>i.status==="listed").reduce((s,i)=>s+n(i.list_price),0);
+  const d=sold.map(i=>days(i.buy_date,i.sell_date)).filter(x=>x!==null&&x>=0);
+  const avgD=d.length?Math.round(d.reduce((a,b)=>a+b,0)/d.length):null;
+  const k=[
+    ["Bénéfice net",`<span class="${pr>=0?"pos":"neg"}">${eur(pr)}</span>`,`${sold.length} vente${sold.length>1?"s":""}`],
+    ["Chiffre d'affaires",eur(rev),sold.length?`panier moyen ${eur0(rev/sold.length)}`:"—"],
+    ["Marge / coût",c>0?`${Math.round(pr/c*100)} %`:"—",sold.length?`${eur0(pr/sold.length)} par vente`:"—"],
+    ["Dépensé en achats",eur(spent),"achats + frais + pièces"],
+    ["Stock immobilisé",eur(stockV),`${stock.length} article${stock.length>1?"s":""}${listedV?` · ${eur0(listedV)} affichés`:""}`],
+    ["Délai de vente",avgD===null?"—":`${avgD} j`,"moyen, achat → vente"],
+  ];
+  $("#kpis").innerHTML=k.map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+}
+
+function renderChart(){
+  const now=new Date(), months=[], NM=innerWidth<640?6:12;
+  for(let m=NM-1;m>=0;m--){const d=new Date(now.getFullYear(),now.getMonth()-m,1);months.push({k:d.toISOString().slice(0,7),l:d.toLocaleDateString("fr-FR",{month:"short"}).replace(".",""),v:0,n:0})}
+  items.filter(i=>i.status==="sold"&&i.sell_date).forEach(i=>{const m=months.find(x=>x.k===i.sell_date.slice(0,7));if(m){m.v+=profit(i);m.n++}});
+  const W=NM===6?360:640,H=190,pad=NM===6?10:26,bw=(W-pad*2)/NM;
+  const max=Math.max(1,...months.map(m=>m.v)),min=Math.min(0,...months.map(m=>m.v));
+  const y=v=>12+(max-v)/(max-min)*(H-40);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Bénéfice par mois">`;
+  s+=`<line x1="${pad}" x2="${W-pad}" y1="${y(0)}" y2="${y(0)}" stroke="#2a2f3a"/>`;
+  months.forEach((m,i)=>{
+    const x=pad+i*bw+bw*.18,w=bw*.64,top=Math.min(y(m.v),y(0)),h=Math.max(Math.abs(y(m.v)-y(0)),m.n?2:0);
+    s+=`<rect x="${x}" y="${top}" width="${w}" height="${h}" rx="4" fill="${m.v>=0?"#22c55e":"#ef4444"}"><title>${m.l} : ${eur(m.v)} (${m.n} vente${m.n>1?"s":""})</title></rect>`;
+    if(m.n)s+=`<text x="${x+w/2}" y="${m.v>=0?top-4:top+h+11}" text-anchor="middle">${eur0(m.v)}</text>`;
+    s+=`<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${m.l}</text>`;
+  });
+  $("#chart").innerHTML=s+"</svg>";
+}
+
+function renderPlat(){
+  const sold=items.filter(i=>i.status==="sold"&&inPeriod(i.sell_date));
+  const g={};sold.forEach(i=>{const p=i.sell_platform||"Autre";(g[p]??={n:0,rev:0,pr:0,d:[]});g[p].n++;g[p].rev+=n(i.sell_price);g[p].pr+=profit(i);const d=days(i.buy_date,i.sell_date);if(d!==null&&d>=0)g[p].d.push(d)});
+  const rows=Object.entries(g).sort((a,b)=>b[1].pr-a[1].pr);
+  if(!rows.length){$("#plat").innerHTML=`<div class="empty" style="padding:24px">Pas encore de vente sur la période</div>`;return}
+  const max=Math.max(...rows.map(r=>Math.abs(r[1].pr)),1);
+  $("#plat").innerHTML=rows.map(([p,v])=>`<div><div class="prow"><span class="dot" style="background:${pcolor(p)}"></span>
+    <span><b>${esc(p)}</b> <span style="color:var(--mut);font-size:12.5px">· ${v.n} vente${v.n>1?"s":""} · CA ${eur0(v.rev)}${v.d.length?` · ${Math.round(v.d.reduce((a,b)=>a+b,0)/v.d.length)} j`:""}</span></span>
+    <b class="${v.pr>=0?"pos":"neg"}">${eur(v.pr)}</b></div>
+    <div class="bar"><div style="width:${Math.abs(v.pr)/max*100}%;background:${pcolor(p)}"></div></div></div>`).join("");
+}
+
+function renderTabs(){
+  const c=s=>s==="all"?items.length:items.filter(i=>i.status===s).length;
+  $("#tabs").innerHTML=[["all","Tous"],["stock","En stock"],["listed","En vente"],["sold","Vendus"],["kept","Gardés"]]
+    .map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l} <span style="opacity:.6">${c(k)}</span></button>`).join("");
+}
+
+function renderList(){
+  const q=$("#q").value.trim().toLowerCase(), pf=$("#pf").value;
+  let L=items.filter(i=>(tab==="all"||i.status===tab)
+    &&(!pf||i.buy_platform===pf||i.sell_platform===pf)
+    &&(!q||[i.name,i.category,i.notes,i.condition].join(" ").toLowerCase().includes(q)));
+  if(!L.length){$("#list").innerHTML=`<div class="empty">${items.length?"Rien ne correspond.":"Aucun article pour l'instant.<br>Ajoute ton premier achat avec <b>+ Nouvel achat</b>."}</div>`;return}
+  $("#list").innerHTML=L.map(i=>{
+    const sold=i.status==="sold", pr=profit(i), d=sold?days(i.buy_date,i.sell_date):days(i.buy_date,today());
+    const bp=i.buy_platform?`<span class="pf" style="color:${pcolor(i.buy_platform)}">${esc(i.buy_platform)}</span>`:"";
+    const sp=i.sell_platform?`<span class="pf" style="color:${pcolor(i.sell_platform)}">${esc(i.sell_platform)}</span>`:"";
+    let right;
+    if(sold) right=`<div class="p ${pr>=0?"pos":"neg"}">${pr>=0?"+":""}${eur(pr)}</div>`;
+    else if(i.status==="listed"&&n(i.list_price)) {const e=n(i.list_price)-cost(i);right=`<div class="p" style="color:var(--mut)" title="si vendu au prix affiché">≈ ${e>=0?"+":""}${eur0(e)}</div>`}
+    else right=`<div class="p" style="color:var(--mut)">—</div>`;
+    return `<div class="item" data-id="${i.id}">
+      <div style="min-width:0"><div class="n">${esc(i.name)}</div>
+        <div class="meta"><span class="tag st-${i.status}">${ST[i.status]}</span>${i.category?`<span>${esc(i.category)}</span>`:""}${d!==null?`<span>· ${d} j</span>`:""}</div></div>
+      <div class="c">${eur(cost(i))}<small>${bp||"achat"} ${i.buy_date?new Date(i.buy_date).toLocaleDateString("fr-FR"):""}</small></div>
+      <div class="c">${sold?eur(n(i.sell_price)):i.status==="listed"&&n(i.list_price)?`<span style="color:var(--amber)">${eur(n(i.list_price))}</span>`:"—"}<small>${sold?sp+" "+(i.sell_date?new Date(i.sell_date).toLocaleDateString("fr-FR"):""):i.status==="listed"?"affiché":""}</small></div>
+      <div class="c act">${sold?`<small>net reçu</small>${eur(net(i))}`:i.status!=="sold"&&i.status!=="kept"?`<button class="btn sm" data-sell="${i.id}">Vendu ✓</button>`:""}</div>
+      ${right}
+      <div class="c show-m">${eur(cost(i))} → ${sold?eur(n(i.sell_price)):"…"} ${sold?sp:bp}</div>
+    </div>`}).join("");
+}
+
+// ----- form -----
+function fillPlats(){
+  document.querySelectorAll("select[data-plat]").forEach(s=>{
+    const extra=s.dataset.plat==="buy"?["Déjà possédé"]:[];
+    s.innerHTML=`<option value=""></option>`+[...PLATS,...extra].map(p=>`<option>${p}</option>`).join("");
+  });
+  $("#pf").innerHTML=`<option value="">Toutes plateformes</option>`+PLATS.map(p=>`<option>${p}</option>`).join("");
+}
+function formData(){
+  const o=Object.fromEntries(new FormData(form));
+  NUM.forEach(k=>o[k]=(o[k]||"").toString().replace(",","."));
+  return o;
+}
+function updatePreview(){
+  const o=formData(), st=o.status;
+  $("#sellset").style.opacity=st==="sold"?1:.55;
+  let v,l;
+  if(st==="sold"){v=profit(o);l="Bénéfice net"}
+  else if(n(o.list_price)){v=n(o.list_price)-cost(o);l="Bénéfice si vendu au prix affiché"}
+  else{v=-cost(o);l="Coût total engagé"}
+  $("#pvl").textContent=l; const b=$("#pv"); b.textContent=eur(v); b.className=v>0?"pos":v<0?"neg":"";
+}
+function openForm(it=null,opts={}){
+  editId=it?.id??null; form.reset();
+  $("#ftitle").textContent=it?(opts.sell?"Marquer comme vendu":"Modifier"):"Nouvel achat";
+  $("#del").style.visibility=editId?"visible":"hidden";
+  $("#dup").style.visibility=editId?"visible":"hidden";
+  const d=it?{...it}:{status:"stock",buy_date:today()};
+  if(opts.sell){d.status="sold";d.sell_date||=today();if(!n(d.sell_price)&&n(d.list_price))d.sell_price=d.list_price;d.sell_platform||=d.buy_platform==="Déjà possédé"?"":d.buy_platform}
+  for(const [k,v] of Object.entries(d)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}
+  updatePreview(); dlg.showModal();
+  if(opts.sell)form.elements.sell_price.focus(); else if(!it)form.elements.name.focus();
+}
+form.addEventListener("input",updatePreview);
+form.elements.status.addEventListener("change",e=>{if(e.target.value==="sold"&&!form.elements.sell_date.value)form.elements.sell_date.value=today();if(e.target.value==="listed"&&!form.elements.list_date?.value){} updatePreview()});
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const o=formData();
+  if(o.status==="listed")o.list_date=o.list_date||today();
+  try{
+    if(editId)await api(`/api/items/${editId}`,{method:"PUT",body:JSON.stringify(o)});
+    else await api("/api/items",{method:"POST",body:JSON.stringify(o)});
+    dlg.close(); toast(editId?"Modifié":"Ajouté"); load();
+  }catch(err){toast("Erreur : "+err.message)}
+});
+$("#del").onclick=async()=>{if(!editId||!confirm("Supprimer cet article ?"))return;await api(`/api/items/${editId}`,{method:"DELETE"});dlg.close();toast("Supprimé");load()};
+$("#dup").onclick=()=>{const it=items.find(i=>i.id===editId);if(!it)return;dlg.close();const c={...it};delete c.id;Object.assign(c,{status:"stock",sell_platform:"",sell_date:"",sell_price:0,sell_fees:0,ship_cost:0,buy_date:today()});openForm(null);for(const [k,v] of Object.entries(c)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}updatePreview()};
+
+// ----- events -----
+$("#list").addEventListener("click",e=>{
+  const s=e.target.closest("[data-sell]"); if(s){e.stopPropagation();openForm(items.find(i=>i.id==s.dataset.sell),{sell:true});return}
+  const r=e.target.closest(".item"); if(r)openForm(items.find(i=>i.id==r.dataset.id));
+});
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){tab=b.dataset.t;renderTabs();renderList()}});
+$("#period").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;document.querySelectorAll("#period button").forEach(x=>x.classList.toggle("on",x===b));renderKpis();renderPlat()});
+$("#q").addEventListener("input",renderList); $("#pf").addEventListener("change",renderList);
+function toggleMenu(e){e.stopPropagation();$("#menu").classList.toggle("open")}
+document.addEventListener("click",()=>$("#menu").classList.remove("open"));
+$("#imp").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const data=JSON.parse(await f.text()); const list=data.items||data;
+    const replace=confirm(`${list.length} article(s) dans le fichier.\n\nOK = REMPLACER toutes les données actuelles\nAnnuler = AJOUTER aux données existantes`);
+    const r=await api("/api/import",{method:"POST",body:JSON.stringify({items:list,replace})});
+    toast(`${r.imported} article(s) importé(s)`); load();
+  }catch(err){toast("Import impossible : "+err.message)}
+  e.target.value="";
+});
+
+fillPlats(); load().catch(e=>toast("Serveur injoignable : "+e.message));
+</script>
+</body>
+</html>
