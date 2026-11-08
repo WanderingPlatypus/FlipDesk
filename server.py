@@ -36,9 +36,9 @@ FIELDS = {
     "list_price": float, "list_date": str,
     "sell_platform": str, "sell_date": str, "sell_price": float,
     "sell_fees": float, "ship_cost": float,
-    "url": str, "notes": str,
+    "url": str, "notes": str, "lot": str,
 }
-STATUSES = {"stock", "listed", "sold", "kept"}
+STATUSES = {"stock", "listed", "sold", "kept", "parts"}
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS items (
   ship_cost REAL DEFAULT 0,
   url TEXT DEFAULT '',
   notes TEXT DEFAULT '',
+  lot TEXT DEFAULT '',
   created_at TEXT,
   updated_at TEXT
 );
@@ -79,6 +80,9 @@ def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with db() as c:
         c.executescript(SCHEMA)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(items)")}
+        if "lot" not in cols:  # migration for databases created before lots existed
+            c.execute("ALTER TABLE items ADD COLUMN lot TEXT DEFAULT ''")
 
 
 def clean(payload, partial=False):
