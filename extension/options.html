@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="ui.css">
+</head>
+<body style="max-width:460px">
+  <label>Adresse de FlipDesk
+    <input id="server" placeholder="http://192.168.1.50:8080" autocomplete="off">
+  </label>
+  <label>Mot de passe <span class="mut">(seulement si tu as activé FLIPDESK_PASSWORD)</span>
+    <input id="password" type="password" autocomplete="off">
+  </label>
+  <label class="chk"><input id="purchases" type="checkbox"> Ajouter aussi mes achats</label>
+  <label class="chk"><input id="skipClothes" type="checkbox"> Ignorer les achats de vêtements</label>
+  <div class="row">
+    <button id="save" class="btn primary">Enregistrer</button>
+    <button id="test" class="btn">Tester la connexion</button>
+  </div>
+  <div id="msg"></div>
+  <p class="hint">Les articles déjà présents ne sont jamais dupliqués. Si tu supprimes un article dans FlipDesk, la synchronisation ne le recrée pas.</p>
+  <script src="options.js"></script>
+</body>
+</html>

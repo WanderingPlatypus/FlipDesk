@@ -1,0 +1,17 @@
+:root { color-scheme: dark; }
+body { margin: 0; padding: 14px; background: #0f1115; color: #e7e9ee; font: 13.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 15px; }
+.pill { margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid #2a2f3a; color: #8b93a3; }
+.pill.ok { color: #22c55e; border-color: #1d4d2e; } .pill.bad { color: #ef4444; border-color: #5a1d1d; }
+.plat { background: #171a21; border: 1px solid #2a2f3a; border-radius: 10px; padding: 9px 11px; margin-bottom: 8px; }
+.pname { font-weight: 700; margin-bottom: 2px; } .pname.v { color: #09b1ba; } .pname.l { color: #ff6e14; }
+.mut { color: #8b93a3; } .pos { color: #22c55e; } .neg { color: #ef4444; } .warn { color: #f59e0b; margin-top: 3px; }
+.btn { border: 1px solid #2a2f3a; background: #1e222b; color: inherit; padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; width: 100%; }
+.btn:hover { border-color: #3a4150; } .btn:disabled { opacity: .6; cursor: default; }
+.btn.primary { background: #22c55e; border-color: #22c55e; color: #06260f; font-weight: 700; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.hint { color: #8b93a3; font-size: 12px; margin: 10px 0 0; }
+label { display: grid; gap: 4px; margin-bottom: 12px; color: #8b93a3; font-size: 12.5px; }
+label.chk { display: flex; align-items: center; gap: 8px; color: #e7e9ee; font-size: 13.5px; }
+input:not([type=checkbox]) { background: #171a21; border: 1px solid #2a2f3a; border-radius: 8px; padding: 8px 10px; color: #e7e9ee; font: inherit; }
+#msg { margin-top: 10px; }

@@ -1,0 +1,63 @@
+{
+  "manifest_version": 2,
+  "name": "FlipDesk Sync",
+  "version": "1.0.0",
+  "description": "Envoie automatiquement tes annonces, ventes et achats Vinted et Leboncoin vers ton serveur FlipDesk.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "flipdesk-sync@wanderingplatypus",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
+  "icons": {
+    "48": "icon.svg",
+    "96": "icon.svg"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "notifications"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.vinted.fr/*"
+      ],
+      "js": [
+        "vinted.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.leboncoin.fr/*"
+      ],
+      "js": [
+        "lbc.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    "lbc-hook.js"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.svg",
+    "default_title": "FlipDesk"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}

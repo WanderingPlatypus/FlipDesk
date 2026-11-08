@@ -23,6 +23,8 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import sync
+
 HERE = Path(__file__).resolve().parent
 PORT = int(os.environ.get("FLIPDESK_PORT", "8080"))
 HOST = os.environ.get("FLIPDESK_HOST", "0.0.0.0")
@@ -66,9 +68,11 @@ CREATE TABLE IF NOT EXISTS items (
   notes TEXT DEFAULT '',
   lot TEXT DEFAULT '',
   parent_id INTEGER,
+  ext_ids TEXT DEFAULT '',
   created_at TEXT,
   updated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS ignored (ext TEXT PRIMARY KEY);
 """
 
 _lock = threading.Lock()
@@ -117,6 +121,9 @@ def init_db():
             c.execute("ALTER TABLE items ADD COLUMN lot TEXT DEFAULT ''")
         if "parent_id" not in cols:
             c.execute("ALTER TABLE items ADD COLUMN parent_id INTEGER")
+        if "ext_ids" not in cols:
+            c.execute("ALTER TABLE items ADD COLUMN ext_ids TEXT DEFAULT ''")
+            sync.ext_from_notes(c)  # link items imported earlier to their Vinted/Leboncoin ids
         lots_to_parents(c)
 
 
@@ -230,6 +237,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
         for k, v in (extra or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -258,6 +266,14 @@ class Handler(BaseHTTPRequestHandler):
         return int(m.group(1)) if m else None
 
     # ---------- routes ----------
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_HEAD(self):
         self.do_GET()
 
@@ -329,6 +345,10 @@ class Handler(BaseHTTPRequestHandler):
                                     list(item.values()))
                     r = c.execute("SELECT * FROM items WHERE id=?", (cur.lastrowid,)).fetchone()
                 return self._send(201, row_dict(r))
+            if path == "/api/sync":
+                with _lock, db() as c:
+                    rep = sync.run(c, data, now())
+                return self._send(200, rep)
             if path in ("/api/update/check", "/api/update"):
                 if not git_supported():
                     return self._err(400, "Mise à jour automatique indisponible : FlipDesk n'est pas installé depuis git.")
@@ -357,6 +377,8 @@ class Handler(BaseHTTPRequestHandler):
                     ci["created_at"] = it.get("created_at") or now()
                     ci["updated_at"] = now()
                     old_parent = ci.pop("parent_id", None)
+                    if it.get("ext_ids"):
+                        ci["ext_ids"] = " " + " ".join(str(it["ext_ids"]).split()) + " "
                     cleaned.append((it.get("id"), old_parent, ci))
                 with _lock, db() as c:
                     if replace:
@@ -373,10 +395,11 @@ class Handler(BaseHTTPRequestHandler):
                         if old_parent in idmap and idmap[old_parent] != new_id:
                             c.execute("UPDATE items SET parent_id=? WHERE id=?", (idmap[old_parent], new_id))
                     lots_to_parents(c)
+                    sync.ext_from_notes(c)
                 return self._send(200, {"imported": len(cleaned)})
             return self._err(404, "not found")
-        except (ValueError, json.JSONDecodeError) as e:
-            return self._err(400, str(e))
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
+            return self._err(400, f"Requête invalide : {e}")
 
     def do_PUT(self):
         if not self._guard():
@@ -411,6 +434,9 @@ class Handler(BaseHTTPRequestHandler):
         if iid is None:
             return self._err(404, "not found")
         with _lock, db() as c:
+            row = c.execute("SELECT ext_ids FROM items WHERE id=?", (iid,)).fetchone()
+            for e in (row["ext_ids"] or "").split() if row else []:
+                c.execute("INSERT OR IGNORE INTO ignored (ext) VALUES (?)", (e,))
             c.execute("DELETE FROM items WHERE id=?", (iid,))
             c.execute("UPDATE items SET parent_id=NULL WHERE parent_id=?", (iid,))
         return self._send(200, {"deleted": iid})
