@@ -9,7 +9,9 @@ One Python file + one HTML page, SQLite storage, **zero dependencies** (only `py
 - **Status:** In stock → Listed (with asking price) → Sold / Kept
 - **Dashboard:** net profit, revenue, margin on cost, money spent, capital tied up in stock, average days to sell, profit per month (12-month chart), breakdown per selling platform. Filter by all time / this year / this month / last 30 days.
 - One-tap **"Vendu ✓"** button on unsold items (prefills today's date, the asking price and the platform)
+- **Lots**: items sharing a lot name pool their costs (split by sale/asking price); *Pièces* status for items used as parts; Lots tab with each lot's result
 - CSV export (opens in Excel), JSON backup / restore
+- One-click server update from the ⋯ menu
 - Works on phone (add it to your home screen)
 
 Profit = sale price − seller fees − shipping you paid − (buy price + buy fees + repair cost)
@@ -26,7 +28,8 @@ Profit = sale price − seller fees − shipping you paid − (buy price + buy f
    ```
 3. Open the URL printed at the end, e.g. `http://192.168.1.xx:8080`.
 
-To **update** later: `cd /root/flipdesk && git pull && bash install.sh`. Your data and password are kept.
+To **update** later: in the app, **⋯ → Mettre à jour le serveur**. It checks GitHub, lists the new changes, then pulls and restarts by itself. Your data and password are kept.
+(The app lives as a git clone in `/opt/flipdesk`. If `install.sh` itself changes, rerun it: `cd /root/flipdesk && git pull && bash install.sh`.)
 
 ### Password (optional)
 Edit `/etc/flipdesk.env`, uncomment `FLIPDESK_PASSWORD=...`, then `systemctl restart flipdesk`.
