@@ -58,6 +58,13 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wra
 .tag{font-size:11.5px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
 .st-stock{color:var(--blue);border-color:#294466}.st-listed{color:var(--amber);border-color:#5a4415}
 .st-sold{color:var(--green);border-color:#1d4d2e}.st-kept{color:var(--mut)}.st-parts{color:#c084fc;border-color:#4b2a6b}
+.stsel{appearance:none;-webkit-appearance:none;font-size:11.5px;padding:2px 20px 2px 8px;border-radius:20px;border:1px solid var(--line);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b93a3'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer;font-weight:600}
+.stsel.st-stock{color:var(--blue)}.stsel.st-listed{color:var(--amber)}.stsel.st-sold{color:var(--green)}.stsel.st-kept{color:var(--mut)}.stsel.st-parts{color:#c084fc}
+.stsel option{color:var(--txt);background:var(--panel2)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#2a2340;color:#c4b5fd;border-radius:20px;padding:6px 6px 6px 12px;font-size:13px}
+.chip button{border:0;background:#3b3157;color:inherit;border-radius:50%;width:22px;height:22px;cursor:pointer}
+.kids{display:grid;gap:4px;margin-top:6px}.kids a{color:var(--txt);text-decoration:none;display:flex;justify-content:space-between;gap:8px;padding:6px 9px;border-radius:8px;background:var(--bg);border:1px solid var(--line);font-size:13px;cursor:pointer}
+.kids a:hover{border-color:#3a4150}
 .lottag{font-size:11.5px;padding:2px 7px;border-radius:20px;background:#2a2340;color:#c4b5fd;white-space:nowrap;cursor:pointer}
 .lotcard{display:grid;grid-template-columns:1fr repeat(3,110px);gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
 .lotcard:hover{border-color:#3a4150}.lotcard .c small{display:block;color:var(--mut);font-size:11.5px}
@@ -149,6 +156,7 @@ svg text{fill:var(--mut);font-size:10.5px}
     <div class="seg" id="tabs"></div>
     <input id="q" placeholder="Rechercher (nom, catégorie, notes)…">
     <select id="pf"><option value="">Toutes plateformes</option></select>
+    <span id="gchip"></span>
   </div>
   <div class="list" id="list"></div>
 </div>
@@ -168,7 +176,10 @@ svg text{fill:var(--mut);font-size:10.5px}
           <option value="sold">Vendu</option><option value="kept">Gardé</option><option value="parts">Utilisé en pièces</option></select></label>
         <label class="w2">État<input name="condition" list="conds" placeholder="Très bon état, HS, pour pièces…"></label>
         <label class="w2">Lien annonce<input name="url" type="url" placeholder="https://…"></label>
-        <label class="w4">Lot / groupe <span style="opacity:.7">— les articles du même lot partagent leurs coûts</span><input name="lot" list="lots" placeholder="ex. Lot 3 manettes PS5 (Vinted 11/04)"></label>
+        <label class="w4">Article d'origine (lot) <span style="opacity:.7">— si cet article vient d'un lot ou sert de pièces, choisis l'achat d'origine : les coûts seront partagés</span>
+          <span style="display:flex;gap:6px"><input id="ppick" list="parents" placeholder="Rechercher un achat…" autocomplete="off" style="flex:1"><button type="button" class="btn sm" id="pclear" title="Retirer le lien">✕</button></span>
+          <input type="hidden" name="parent_id"></label>
+        <div class="w4" id="kidsbox"></div>
       </div></fieldset>
       <fieldset><legend>Achat</legend><div class="f">
         <label>Acheté sur<select name="buy_platform" data-plat="buy"></select></label>
@@ -201,7 +212,7 @@ svg text{fill:var(--mut);font-size:10.5px}
   <div class="mb" id="updbody" style="min-height:80px"></div>
   <div class="mf"><span style="flex:1"></span><button class="btn" onclick="upd.close()">Fermer</button><button class="btn primary" id="updgo" style="display:none">Installer et redémarrer</button></div>
 </dialog>
-<datalist id="cats"></datalist><datalist id="lots"></datalist>
+<datalist id="cats"></datalist><datalist id="parents"></datalist>
 <datalist id="conds"><option>Neuf</option><option>Très bon état</option><option>Bon état</option><option>État correct</option><option>À réparer</option><option>Pour pièces</option></datalist>
 <div class="toast" id="toast"></div>
 
@@ -219,13 +230,17 @@ const today=()=>new Date().toISOString().slice(0,10);
 const n=v=>+v||0;
 const cost=i=>n(i.buy_price)+n(i.buy_fees)+n(i.repair_cost);
 const net=i=>n(i.sell_price)-n(i.sell_fees)-n(i.ship_cost);
-// Lots: all items sharing a lot name pool their costs; the pool is spread over the
-// members by sale price (sold) or asking price (unsold); "parts" members weigh 0.
-let ALLOC={};
+// Lots: an origin purchase + the items linked to it (parent_id) pool their costs;
+// the pool is spread over the members by sale price (sold) or asking price (unsold);
+// "parts" members weigh 0.
+let ALLOC={}, BYID={}, KIDS={};
+const rootOf=(i,by=BYID)=>i.parent_id&&by[i.parent_id]?i.parent_id:i.id;
 function computeAlloc(list){
+  const by={};list.forEach(i=>by[i.id]=i);
   const m={},groups={};
-  list.forEach(i=>{if(i.lot)(groups[i.lot]??=[]).push(i);else m[i.id]=cost(i)});
+  list.forEach(i=>(groups[rootOf(i,by)]??=[]).push(i));
   for(const g of Object.values(groups)){
+    if(g.length===1){m[g[0].id]=cost(g[0]);continue}
     const pool=g.reduce((s,i)=>s+cost(i),0);
     let w=g.map(i=>i.status==="parts"?0:i.status==="sold"?n(i.sell_price):n(i.list_price)),t=w.reduce((a,b)=>a+b,0);
     if(t<=0){w=g.map(i=>i.status==="parts"?0:1);t=w.reduce((a,b)=>a+b,0)}
@@ -246,7 +261,14 @@ async function api(path,opt={}){
   return j;
 }
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200)}
-async function load(){items=await api("/api/items");ALLOC=computeAlloc(items);render()}
+async function load(){
+  items=await api("/api/items");
+  BYID={};KIDS={};items.forEach(i=>BYID[i.id]=i);
+  items.forEach(i=>{const r=rootOf(i);if(r!==i.id)(KIDS[r]??=[]).push(i)});
+  ALLOC=computeAlloc(items);render()}
+const inLot=i=>!!(KIDS[i.id]||(i.parent_id&&BYID[i.parent_id]));
+const fmtD=d=>d?new Date(d).toLocaleDateString("fr-FR"):"";
+const pickLabel=i=>`#${i.id} · ${i.name} — ${[i.buy_platform,fmtD(i.buy_date)].filter(Boolean).join(" ")}${cost(i)?" · "+eur(cost(i)):""}`;
 
 function inPeriod(d){
   if(period==="all")return true; if(!d)return false;
@@ -257,10 +279,13 @@ function inPeriod(d){
 }
 
 function render(){renderKpis();renderChart();renderPlat();renderTabs();renderList();
-  $("#lots").innerHTML=lotNames().map(c=>`<option>${esc(c)}</option>`).join("");
+  $("#parents").innerHTML=items.filter(i=>!(i.parent_id&&BYID[i.parent_id]))
+    .sort((a,b)=>(cost(b)>0)-(cost(a)>0)||(b.buy_date||"").localeCompare(a.buy_date||""))
+    .map(i=>`<option value="${esc(pickLabel(i))}"></option>`).join("");
   $("#cats").innerHTML=[...new Set(items.map(i=>i.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join("");}
 
-const lotNames=()=>[...new Set(items.map(i=>i.lot).filter(Boolean))].sort();
+const lotRoots=()=>Object.keys(KIDS).map(Number).filter(id=>BYID[id]);
+let group=null; // id of the origin purchase whose lot is being shown
 function renderKpis(){
   const sold=items.filter(i=>i.status==="sold"&&inPeriod(i.sell_date));
   const spent=items.filter(i=>inPeriod(i.buy_date)).reduce((s,i)=>s+cost(i),0);
@@ -314,21 +339,22 @@ function renderPlat(){
 }
 
 function renderTabs(){
-  const c=s=>s==="all"?items.length:s==="lots"?lotNames().length:items.filter(i=>i.status===s).length;
+  const c=s=>s==="all"?items.length:s==="lots"?lotRoots().length:items.filter(i=>i.status===s).length;
   $("#tabs").innerHTML=[["all","Tous"],["stock","En stock"],["listed","En vente"],["sold","Vendus"],["kept","Gardés"],["parts","Pièces"],["lots","📦 Lots"]]
     .map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l} <span style="opacity:.6">${c(k)}</span></button>`).join("");
 }
 
 function renderLots(q){
-  const L=lotNames().filter(l=>!q||l.toLowerCase().includes(q));
-  if(!L.length){$("#list").innerHTML=`<div class="empty">Aucun lot.<br>Ouvre un achat, remplis le champ <b>Lot</b>, puis utilise <b>+ Article du lot</b> pour chaque pièce.</div>`;return}
-  $("#list").innerHTML=L.map(l=>{
-    const g=items.filter(i=>i.lot===l), pool=g.reduce((s,i)=>s+cost(i),0);
+  const L=lotRoots().filter(id=>!q||[BYID[id],...KIDS[id]].some(i=>i.name.toLowerCase().includes(q)))
+    .sort((a,b)=>(BYID[b].buy_date||"").localeCompare(BYID[a].buy_date||""));
+  if(!L.length){$("#list").innerHTML=`<div class="empty">Aucun lot.<br>Ouvre un achat et clique sur <b>+ Article du lot</b> pour chaque article qui en sort,<br>ou choisis l'<b>article d'origine</b> dans un article existant.</div>`;return}
+  $("#list").innerHTML=L.map(id=>{
+    const root=BYID[id], l=root.name, g=[root,...KIDS[id]], pool=g.reduce((s,i)=>s+cost(i),0);
     const sold=g.filter(i=>i.status==="sold"), rev=sold.reduce((s,i)=>s+net(i),0), res=rev-pool;
     const left=g.filter(i=>i.status==="stock"||i.status==="listed").length, parts=g.filter(i=>i.status==="parts").length;
-    return `<div class="lotcard" data-lot="${esc(l)}">
+    return `<div class="lotcard" data-group="${id}">
       <div style="min-width:0"><div class="n" style="font-weight:650">📦 ${esc(l)}</div>
-        <div class="meta" style="color:var(--mut);font-size:12.5px">${g.length} article${g.length>1?"s":""} · ${sold.length} vendu${sold.length>1?"s":""}${parts?` · ${parts} en pièces`:""}${left?` · <span style="color:var(--amber)">${left} restant${left>1?"s":""}</span>`:" · terminé"}</div></div>
+        <div class="meta" style="color:var(--mut);font-size:12.5px">${[root.buy_platform,fmtD(root.buy_date)].filter(Boolean).join(" ")} · ${g.length} article${g.length>1?"s":""} · ${sold.length} vendu${sold.length>1?"s":""}${parts?` · ${parts} en pièces`:""}${left?` · <span style="color:var(--amber)">${left} restant${left>1?"s":""}</span>`:" · terminé"}</div></div>
       <div class="c"><small>coût total</small>${eur(pool)}</div>
       <div class="c"><small>ventes (net)</small>${eur(rev)}</div>
       <div class="c" style="text-align:right"><small>${left?"résultat actuel":"résultat"}</small><b class="${res>=0?"pos":"neg"}">${res>=0?"+":""}${eur(res)}</b></div>
@@ -337,9 +363,11 @@ function renderLots(q){
 function renderList(){
   const q=$("#q").value.trim().toLowerCase(), pf=$("#pf").value;
   if(tab==="lots")return renderLots(q);
-  let L=items.filter(i=>(tab==="all"||i.status===tab)
+  $("#gchip").innerHTML=group&&BYID[group]?`<span class="chip">📦 ${esc(BYID[group].name)}<button data-ungroup title="Voir tout">✕</button></span>`:"";
+  let L=items.filter(i=>(!group||rootOf(i)===group)&&(tab==="all"||i.status===tab)
     &&(!pf||i.buy_platform===pf||i.sell_platform===pf)
-    &&(!q||[i.name,i.category,i.notes,i.condition,i.lot].join(" ").toLowerCase().includes(q)));
+    &&(!q||[i.name,i.category,i.notes,i.condition].join(" ").toLowerCase().includes(q)));
+  if(group)L.sort((a,b)=>(a.id===group?-1:b.id===group?1:0));
   if(!L.length){$("#list").innerHTML=`<div class="empty">${items.length?"Rien ne correspond.":"Aucun article pour l'instant.<br>Ajoute ton premier achat avec <b>+ Nouvel achat</b>."}</div>`;return}
   $("#list").innerHTML=L.map(i=>{
     const sold=i.status==="sold", pr=profit(i), d=sold?days(i.buy_date,i.sell_date):(i.status==="stock"||i.status==="listed")?days(i.buy_date,today()):null;
@@ -351,8 +379,10 @@ function renderList(){
     else right=`<div class="p" style="color:var(--mut)">—</div>`;
     return `<div class="item" data-id="${i.id}">
       <div style="min-width:0"><div class="n">${esc(i.name)}</div>
-        <div class="meta"><span class="tag st-${i.status}">${ST[i.status]}</span>${i.lot?`<span class="lottag" data-lotq="${esc(i.lot)}">📦 ${esc(i.lot)}</span>`:""}${i.category?`<span>${esc(i.category)}</span>`:""}${d!==null?`<span>· ${d} j</span>`:""}</div></div>
-      <div class="c">${eur(ecost(i))}<small>${i.lot&&Math.abs(ecost(i)-cost(i))>.005?"part du lot · ":""}${bp||"achat"} ${i.buy_date?new Date(i.buy_date).toLocaleDateString("fr-FR"):""}</small></div>
+        <div class="meta"><select class="stsel st-${i.status}" data-st="${i.id}" aria-label="Statut">${Object.entries(ST).map(([k,l])=>`<option value="${k}"${k===i.status?" selected":""}>${l}</option>`).join("")}</select>${
+          i.parent_id&&BYID[i.parent_id]?`<span class="lottag" data-open="${i.parent_id}" title="Ouvrir l'achat d'origine">↳ ${esc(BYID[i.parent_id].name)}</span>`
+          :KIDS[i.id]?`<span class="lottag" data-group="${i.id}" title="Voir les articles du lot">📦 ${KIDS[i.id].length+1} articles</span>`:""}${i.category?`<span>${esc(i.category)}</span>`:""}${d!==null?`<span>· ${d} j</span>`:""}</div></div>
+      <div class="c">${eur(ecost(i))}<small>${inLot(i)&&Math.abs(ecost(i)-cost(i))>.005?"part du lot · ":""}${bp||"achat"} ${i.buy_date?new Date(i.buy_date).toLocaleDateString("fr-FR"):""}</small></div>
       <div class="c">${sold?eur(n(i.sell_price)):i.status==="listed"&&n(i.list_price)?`<span style="color:var(--amber)">${eur(n(i.list_price))}</span>`:"—"}<small>${sold?sp+" "+(i.sell_date?new Date(i.sell_date).toLocaleDateString("fr-FR"):""):i.status==="listed"?"affiché":""}</small></div>
       <div class="c act">${sold?`<small>net reçu</small>${eur(net(i))}`:i.status==="stock"||i.status==="listed"?`<button class="btn sm" data-sell="${i.id}">Vendu ✓</button>`:""}</div>
       ${right}
@@ -373,13 +403,29 @@ function formData(){
   NUM.forEach(k=>o[k]=(o[k]||"").toString().replace(",","."));
   return o;
 }
+function syncPick(){
+  const v=$("#ppick").value.trim(), m=v.match(/^#(\d+)/), id=m&&BYID[+m[1]]?+m[1]:"";
+  form.elements.parent_id.value=id&&id!==editId?id:"";
+}
+function setPick(id){const p=BYID[id];$("#ppick").value=p?pickLabel(p):"";form.elements.parent_id.value=p?id:""}
+$("#ppick").addEventListener("input",()=>{syncPick();updatePreview()});
+$("#ppick").addEventListener("change",()=>{syncPick();if(!form.elements.parent_id.value)$("#ppick").value="";updatePreview()});
+$("#pclear").onclick=()=>{setPick(null);updatePreview()};
+function renderKids(){
+  const k=editId&&KIDS[editId];
+  $("#kidsbox").innerHTML=k?`<div style="font-size:12.5px;color:var(--mut)">Articles issus de cet achat :</div><div class="kids">${k.map(c=>`<a data-goto="${c.id}"><span>${esc(c.name)}</span><span style="color:var(--mut)">${ST[c.status]}${c.status==="sold"?" · "+eur(n(c.sell_price)):""}</span></a>`).join("")}</div>`:"";
+  // an origin purchase can't itself be linked to another one from here
+  $("#ppick").disabled=!!k;$("#ppick").placeholder=k?"C'est l'achat d'origine de ce lot":"Rechercher un achat…";
+}
+$("#kidsbox").addEventListener("click",e=>{const a=e.target.closest("[data-goto]");if(a){dlg.close();openForm(BYID[a.dataset.goto])}});
 function updatePreview(){
   const o=formData(), st=o.status;
-  o.id=editId??"__new";
-  const ec=o.lot?computeAlloc([...items.filter(i=>i.id!==editId),o])[o.id]:cost(o);
+  o.id=editId??"__new"; o.parent_id=+o.parent_id||null;
+  const linked=!!(o.parent_id||KIDS[editId]);
+  const ec=linked?computeAlloc([...items.filter(i=>i.id!==editId),o])[o.id]:cost(o);
   $("#sellset").style.opacity=st==="sold"?1:.55;
   let v,l;
-  const lt=o.lot?" (avec sa part du lot)":"";
+  const lt=linked?" (avec sa part du lot)":"";
   if(st==="parts"){v=-ec;l="Utilisé en pièces : coût reporté sur le lot"}
   else if(st==="sold"){v=net(o)-ec;l="Bénéfice net"+lt}
   else if(n(o.list_price)){v=n(o.list_price)-ec;l="Bénéfice si vendu au prix affiché"+lt}
@@ -395,6 +441,7 @@ function openForm(it=null,opts={}){
   const d=it?{...it}:{status:"stock",buy_date:today()};
   if(opts.sell){d.status="sold";d.sell_date||=today();if(!n(d.sell_price)&&n(d.list_price))d.sell_price=d.list_price;d.sell_platform||=d.buy_platform==="Déjà possédé"?"":d.buy_platform}
   for(const [k,v] of Object.entries(d)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}
+  setPick(d.parent_id); renderKids();
   updatePreview(); dlg.showModal();
   if(opts.sell)form.elements.sell_price.focus(); else if(!it)form.elements.name.focus();
 }
@@ -402,7 +449,7 @@ form.addEventListener("input",updatePreview);
 form.elements.status.addEventListener("change",e=>{if(e.target.value==="sold"&&!form.elements.sell_date.value)form.elements.sell_date.value=today();if(e.target.value==="listed"&&!form.elements.list_date?.value){} updatePreview()});
 form.addEventListener("submit",async e=>{
   e.preventDefault();
-  const o=formData();
+  syncPick(); const o=formData(); o.parent_id=o.parent_id||null;
   if(o.status==="listed")o.list_date=o.list_date||today();
   try{
     if(editId)await api(`/api/items/${editId}`,{method:"PUT",body:JSON.stringify(o)});
@@ -410,27 +457,35 @@ form.addEventListener("submit",async e=>{
     dlg.close(); toast(editId?"Modifié":"Ajouté"); load();
   }catch(err){toast("Erreur : "+err.message)}
 });
-$("#del").onclick=async()=>{if(!editId||!confirm("Supprimer cet article ?"))return;await api(`/api/items/${editId}`,{method:"DELETE"});dlg.close();toast("Supprimé");load()};
-$("#dup").onclick=()=>{const it=items.find(i=>i.id===editId);if(!it)return;dlg.close();const c={...it};delete c.id;Object.assign(c,{status:"stock",sell_platform:"",sell_date:"",sell_price:0,sell_fees:0,ship_cost:0,buy_date:today()});openForm(null);for(const [k,v] of Object.entries(c)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}updatePreview()};
+$("#del").onclick=async()=>{if(!editId||!confirm(KIDS[editId]?`Supprimer cet achat ? Les ${KIDS[editId].length} article(s) du lot ne seront plus liés.`:"Supprimer cet article ?"))return;await api(`/api/items/${editId}`,{method:"DELETE"});dlg.close();toast("Supprimé");load()};
+$("#dup").onclick=()=>{const it=items.find(i=>i.id===editId);if(!it)return;dlg.close();const c={...it};delete c.id;Object.assign(c,{status:"stock",sell_platform:"",sell_date:"",sell_price:0,sell_fees:0,ship_cost:0,buy_date:today()});openForm(null);for(const [k,v] of Object.entries(c)){const el=form.elements[k];if(el)el.value=NUM.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}setPick(c.parent_id);updatePreview()};
 
-$("#addlot").onclick=async()=>{
-  const it=items.find(i=>i.id===editId);if(!it)return;
-  let lot=form.elements.lot.value.trim();
-  if(!lot){lot=prompt("Nom du lot :",it.name);if(!lot)return;}
-  try{
-    if(it.lot!==lot)await api(`/api/items/${editId}`,{method:"PUT",body:JSON.stringify({...formData(),lot})});
-    dlg.close();await load();
-    openForm(null);
-    Object.entries({lot,buy_platform:it.buy_platform,buy_date:it.buy_date,category:it.category,status:"stock"}).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v||""});
-    $("#ftitle").textContent="Nouvel article du lot";updatePreview();form.elements.name.focus();
-  }catch(err){toast("Erreur : "+err.message)}
+$("#addlot").onclick=()=>{
+  const it=BYID[editId];if(!it)return;
+  const root=BYID[rootOf(it)];
+  dlg.close(); openForm(null);
+  Object.entries({buy_platform:root.buy_platform,buy_date:root.buy_date,category:root.category,status:"stock"}).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v||""});
+  setPick(root.id);
+  $("#ftitle").textContent="Nouvel article du lot";updatePreview();form.elements.name.focus();
 };
 // ----- events -----
 $("#list").addEventListener("click",e=>{
-  const lt=e.target.closest("[data-lotq],[data-lot]"); if(lt){e.stopPropagation();$("#q").value=lt.dataset.lotq||lt.dataset.lot;tab="all";renderTabs();renderList();return}
+  if(e.target.closest(".stsel"))return;
+  const op=e.target.closest("[data-open]"); if(op){e.stopPropagation();openForm(BYID[op.dataset.open]);return}
+  const gr=e.target.closest("[data-group]"); if(gr){e.stopPropagation();group=+gr.dataset.group;tab="all";$("#q").value="";renderTabs();renderList();scrollTo({top:$("#tabs").offsetTop-10,behavior:"smooth"});return}
   const s=e.target.closest("[data-sell]"); if(s){e.stopPropagation();openForm(items.find(i=>i.id==s.dataset.sell),{sell:true});return}
   const r=e.target.closest(".item"); if(r)openForm(items.find(i=>i.id==r.dataset.id));
 });
+$("#list").addEventListener("change",async e=>{
+  const s=e.target.closest(".stsel");if(!s)return;
+  const it=BYID[s.dataset.st], st=s.value;
+  if(st==="sold"){s.value=it.status;openForm(it,{sell:true});return}   // a sale needs price & date
+  try{
+    await api(`/api/items/${it.id}`,{method:"PUT",body:JSON.stringify({status:st,...(st==="listed"&&!it.list_date?{list_date:today()}:{})})});
+    toast(`${it.name} → ${ST[st]}`);load();
+  }catch(err){s.value=it.status;toast("Erreur : "+err.message)}
+});
+$("#gchip").addEventListener("click",e=>{if(e.target.closest("[data-ungroup]")){group=null;renderList()}});
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){tab=b.dataset.t;renderTabs();renderList()}});
 $("#period").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;document.querySelectorAll("#period button").forEach(x=>x.classList.toggle("on",x===b));renderKpis();renderPlat()});
 $("#q").addEventListener("input",renderList); $("#pf").addEventListener("change",renderList);

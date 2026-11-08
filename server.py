@@ -39,7 +39,7 @@ FIELDS = {
     "list_price": float, "list_date": str,
     "sell_platform": str, "sell_date": str, "sell_price": float,
     "sell_fees": float, "ship_cost": float,
-    "url": str, "notes": str, "lot": str,
+    "url": str, "notes": str, "lot": str, "parent_id": int,
 }
 STATUSES = {"stock", "listed", "sold", "kept", "parts"}
 
@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS items (
   url TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   lot TEXT DEFAULT '',
+  parent_id INTEGER,
   created_at TEXT,
   updated_at TEXT
 );
@@ -79,6 +80,34 @@ def db():
     return conn
 
 
+def lots_to_parents(c):
+    """Convert old free-text lot names into parent links: in each lot, the most
+    expensive item without a parent becomes the origin, the others point to it."""
+    groups = {}
+    for r in c.execute("SELECT id, lot, parent_id, buy_price+buy_fees+repair_cost AS cost FROM items WHERE lot != ''"):
+        groups.setdefault(r["lot"], []).append(r)
+    for rows in groups.values():
+        roots = [r for r in rows if not r["parent_id"]] or rows
+        root = max(roots, key=lambda r: (r["cost"] or 0, -r["id"]))["id"]
+        for r in rows:
+            if r["id"] != root and not r["parent_id"]:
+                c.execute("UPDATE items SET parent_id=? WHERE id=?", (root, r["id"]))
+    c.execute("UPDATE items SET lot='' WHERE lot != ''")
+
+
+def resolve_parent(c, iid, parent):
+    """Validate a parent link and keep lots one level deep (child -> origin)."""
+    if parent is None:
+        return None
+    row = c.execute("SELECT id, parent_id FROM items WHERE id=?", (parent,)).fetchone()
+    if not row:
+        raise ValueError("Article d'origine introuvable")
+    root = row["parent_id"] or row["id"]
+    if iid is not None and root == iid:
+        raise ValueError("Un article ne peut pas être son propre article d'origine")
+    return root
+
+
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with db() as c:
@@ -86,6 +115,9 @@ def init_db():
         cols = {r[1] for r in c.execute("PRAGMA table_info(items)")}
         if "lot" not in cols:  # migration for databases created before lots existed
             c.execute("ALTER TABLE items ADD COLUMN lot TEXT DEFAULT ''")
+        if "parent_id" not in cols:
+            c.execute("ALTER TABLE items ADD COLUMN parent_id INTEGER")
+        lots_to_parents(c)
 
 
 def clean(payload, partial=False):
@@ -94,7 +126,15 @@ def clean(payload, partial=False):
         if k not in payload:
             continue
         v = payload[k]
-        if typ is float:
+        if typ is int:
+            if v in (None, "", 0, "0"):
+                v = None
+            else:
+                try:
+                    v = int(str(v).lstrip("#"))
+                except ValueError:
+                    raise ValueError(f"Valeur invalide pour {k}")
+        elif typ is float:
             if v in (None, ""):
                 v = 0.0
             else:
@@ -282,6 +322,8 @@ class Handler(BaseHTTPRequestHandler):
                 item.setdefault("status", "stock")
                 item["created_at"] = item["updated_at"] = now()
                 with _lock, db() as c:
+                    if "parent_id" in item:
+                        item["parent_id"] = resolve_parent(c, None, item["parent_id"])
                     cols = ",".join(item)
                     cur = c.execute(f"INSERT INTO items ({cols}) VALUES ({','.join('?' * len(item))})",
                                     list(item.values()))
@@ -314,13 +356,23 @@ class Handler(BaseHTTPRequestHandler):
                     ci.setdefault("status", "stock")
                     ci["created_at"] = it.get("created_at") or now()
                     ci["updated_at"] = now()
-                    cleaned.append(ci)
+                    old_parent = ci.pop("parent_id", None)
+                    cleaned.append((it.get("id"), old_parent, ci))
                 with _lock, db() as c:
                     if replace:
                         c.execute("DELETE FROM items")
-                    for ci in cleaned:
-                        c.execute(f"INSERT INTO items ({','.join(ci)}) VALUES ({','.join('?' * len(ci))})",
-                                  list(ci.values()))
+                    idmap, links = {}, []
+                    for old_id, old_parent, ci in cleaned:
+                        cur = c.execute(f"INSERT INTO items ({','.join(ci)}) VALUES ({','.join('?' * len(ci))})",
+                                        list(ci.values()))
+                        if old_id is not None:
+                            idmap[old_id] = cur.lastrowid
+                        if old_parent:
+                            links.append((cur.lastrowid, old_parent))
+                    for new_id, old_parent in links:
+                        if old_parent in idmap and idmap[old_parent] != new_id:
+                            c.execute("UPDATE items SET parent_id=? WHERE id=?", (idmap[old_parent], new_id))
+                    lots_to_parents(c)
                 return self._send(200, {"imported": len(cleaned)})
             return self._err(404, "not found")
         except (ValueError, json.JSONDecodeError) as e:
@@ -338,6 +390,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(400, str(e))
         item["updated_at"] = now()
         with _lock, db() as c:
+            if "parent_id" in item:
+                try:
+                    item["parent_id"] = resolve_parent(c, iid, item["parent_id"])
+                except ValueError as e:
+                    return self._err(400, str(e))
+                if item["parent_id"]:  # this item joins a lot: its own children follow it
+                    c.execute("UPDATE items SET parent_id=? WHERE parent_id=?", (item["parent_id"], iid))
             sets = ",".join(f"{k}=?" for k in item)
             cur = c.execute(f"UPDATE items SET {sets} WHERE id=?", list(item.values()) + [iid])
             if cur.rowcount == 0:
@@ -353,6 +412,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(404, "not found")
         with _lock, db() as c:
             c.execute("DELETE FROM items WHERE id=?", (iid,))
+            c.execute("UPDATE items SET parent_id=NULL WHERE parent_id=?", (iid,))
         return self._send(200, {"deleted": iid})
 
 

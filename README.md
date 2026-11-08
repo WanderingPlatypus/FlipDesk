@@ -9,7 +9,8 @@ One Python file + one HTML page, SQLite storage, **zero dependencies** (only `py
 - **Status:** In stock → Listed (with asking price) → Sold / Kept
 - **Dashboard:** net profit, revenue, margin on cost, money spent, capital tied up in stock, average days to sell, profit per month (12-month chart), breakdown per selling platform. Filter by all time / this year / this month / last 30 days.
 - One-tap **"Vendu ✓"** button on unsold items (prefills today's date, the asking price and the platform)
-- **Lots**: items sharing a lot name pool their costs (split by sale/asking price); *Pièces* status for items used as parts; Lots tab with each lot's result
+- **Status dropdown** on every item in the list
+- **Lots**: link an item to its origin purchase (searchable picker, or *+ Article du lot*); the lot's costs are shared (split by sale/asking price); *Pièces* status for items used as parts; Lots tab with each lot's result
 - CSV export (opens in Excel), JSON backup / restore
 - One-click server update from the ⋯ menu
 - Works on phone (add it to your home screen)
