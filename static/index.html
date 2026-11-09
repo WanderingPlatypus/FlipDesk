@@ -52,6 +52,10 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wra
 .bar>div{height:100%}
 .hintbar{display:flex;align-items:center;gap:10px;background:#1d1a2e;border:1px solid #3b3157;border-radius:12px;padding:10px 14px;margin-top:10px;color:var(--violet)}
 .hintbar b{color:var(--txt)}
+.friends{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:10px;display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.friends .f1{cursor:pointer}.friends .f1:hover b{color:var(--violet)}
+.own{font-size:11.5px;padding:2px 8px;border-radius:20px;background:#13283a;color:#7dd3fc;white-space:nowrap}
+.own.ok{background:none;border:1px solid var(--line);color:var(--mut)}
 .toolbar{display:flex;gap:8px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
 .toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
 .toolbar input{flex:1;min-width:160px}
@@ -159,6 +163,10 @@ svg text{fill:var(--mut);font-size:10.5px}
       <button data-p="month">Ce mois</button>
       <button data-p="30">30 j</button>
     </div>
+    <div class="seg" id="scope" title="Réel : les ventes pour des amis ne comptent que pour ce que tu gardes. Absolu : tout ce qui est vendu sur tes comptes.">
+      <button data-sc="me" class="on">Réel</button>
+      <button data-sc="all">Absolu</button>
+    </div>
     <button class="btn hb" onclick="openPurchase()">+ Achat</button>
     <button class="btn primary hb" onclick="openSale()">+ Vente</button>
     <div class="menu" id="menu">
@@ -182,7 +190,7 @@ svg text{fill:var(--mut);font-size:10.5px}
     <div class="card"><h3>Bénéfice net par mois</h3><div id="chart"></div></div>
     <div class="card"><h3>Par plateforme de vente</h3><div class="plat" id="plat"></div></div>
   </section>
-  <div id="hint"></div>
+  <div id="hint"></div><div id="friends"></div>
 
   <div class="views" id="views"></div>
   <div class="toolbar">
@@ -219,6 +227,11 @@ svg text{fill:var(--mut);font-size:10.5px}
         <label>Frais vendeur (€)<input name="fees" inputmode="decimal" placeholder="0"></label>
         <label>Port payé par toi (€)<input name="ship_cost" inputmode="decimal" placeholder="0"></label>
         <label class="w2">Réparation / pièces hors achats liés (€)<input name="repair_cost" inputmode="decimal" placeholder="0"></label>
+      </div></fieldset>
+      <fieldset><legend>Vendu pour quelqu'un d'autre ?</legend><div class="f">
+        <label class="w2">Pour (laisser vide si c'est à toi)<input name="owner" list="owners" placeholder="ex. Lucas" autocomplete="off"></label>
+        <label>Ce que tu gardes (€)<input name="commission" inputmode="decimal" placeholder="0"></label>
+        <label style="align-content:end"><span style="display:flex;gap:8px;align-items:center;color:var(--txt);padding:8px 0"><input type="checkbox" name="settled" style="width:auto"> Argent reversé</span></label>
       </div></fieldset>
       <fieldset><legend>Achats liés <span class="mut" style="font-weight:400">— leur coût est compté dans cette vente</span></legend>
         <div class="links" id="sl"></div>
@@ -273,7 +286,7 @@ svg text{fill:var(--mut);font-size:10.5px}
   <div class="mf"><span style="flex:1"></span><button class="btn" onclick="upd.close()">Fermer</button><button class="btn primary" id="updgo" style="display:none">Installer et redémarrer</button></div>
 </dialog>
 <dialog id="zoom" onclick="this.close()"><img alt=""></dialog>
-<datalist id="cats"></datalist>
+<datalist id="cats"></datalist><datalist id="owners"></datalist>
 <datalist id="conds"><option>Neuf</option><option>Très bon état</option><option>Bon état</option><option>État correct</option><option>À réparer</option><option>Pour pièces</option></datalist>
 <div class="toast" id="toast"></div>
 
@@ -282,9 +295,10 @@ svg text{fill:var(--mut);font-size:10.5px}
 const PLATS=["Leboncoin","Vinted","Brocante","eBay","Facebook","Main propre","Autre"];
 const PCOL={Leboncoin:"var(--lbc)",Vinted:"var(--vinted)",Brocante:"#d6a35c"};
 const SST={listed:"En vente",sold:"Vendu"}, PST={stock:"En stock",kept:"Gardé",used:"Utilisé"};
-const NUMS=["price","fees","list_price","ship_cost","repair_cost"];
+const NUMS=["price","fees","list_price","ship_cost","repair_cost","commission"];
 let D={purchases:[],sales:[],links:[]}, P={}, S={}, PbyS={}, SbyP={}, ALLOC={}, SHARE={};
 let period="all", view="sales", sub="all";
+let scope=(()=>{try{return localStorage.getItem("fd_scope")||"me"}catch{return "me"}})();
 const $=s=>document.querySelector(s);
 const ds=$("#ds"),dp=$("#dp"),dl=$("#dl"),fs=$("#fs"),fp=$("#fp");
 const eur=v=>(v<0?"−":"")+Math.abs(v).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
@@ -311,6 +325,11 @@ const ptotal=p=>n(p.price)+n(p.fees);
 const net=s=>n(s.price)-n(s.fees)-n(s.ship_cost)-n(s.repair_cost);
 const scost=s=>(ALLOC[s.id]||0)+n(s.repair_cost);
 const sprofit=s=>n(s.price)-n(s.fees)-n(s.ship_cost)-scost(s);
+// sales made for a friend: in "Mes chiffres" only what you keep counts
+const forFriend=s=>!!(s.owner||"").trim();
+const owed=s=>n(s.price)-n(s.fees)-n(s.ship_cost)-n(s.commission);   // to give back to the friend
+const myRev=s=>forFriend(s)&&scope==="me"?n(s.commission):n(s.price);
+const myProfit=s=>forFriend(s)&&scope==="me"?n(s.commission)-scost(s):sprofit(s);
 
 // Same rule as the server (model.py): each purchase's cost is spread over its linked
 // sales by sale price (sold) or asking price (listed), equally if none has a price.
@@ -388,23 +407,33 @@ function inPeriod(d){
   if(period==="month")return x.getFullYear()===now.getFullYear()&&x.getMonth()===now.getMonth();
   return (now-x)/864e5<=30;
 }
-function render(){renderKpis();renderChart();renderPlat();renderHint();renderViews();renderList();
+function renderFriends(){
+  const by={};
+  D.sales.filter(forFriend).forEach(s=>{const k=s.owner.trim();(by[k]??={n:0,sold:0,due:0,open:0});by[k].n++;
+    if(s.status==="sold"){by[k].sold++;if(!n(s.settled))by[k].due+=owed(s)}else by[k].open++});
+  const rows=Object.entries(by).sort((a,b)=>b[1].due-a[1].due);
+  $("#friends").innerHTML=rows.length?`<div class="friends"><span class="mut">👤 Ventes pour des amis</span>${rows.map(([k,v])=>`<span class="f1" data-friend="${esc(k)}"><b>${esc(k)}</b> <span class="mut">· ${v.sold} vendu${v.sold>1?"s":""}${v.open?` · ${v.open} en vente`:""}</span>${v.due>0.005?` · <span style="color:var(--amber)">${eur(v.due)} à reverser</span>`:` · <span class="mut">rien à reverser</span>`}</span>`).join("")}</div>`:"";
+  $("#owners").innerHTML=Object.keys(by).map(k=>`<option>${esc(k)}</option>`).join("");
+}
+function render(){renderKpis();renderChart();renderPlat();renderHint();renderFriends();renderViews();renderList();
   $("#cats").innerHTML=[...new Set([...D.purchases,...D.sales].map(i=>i.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join("")}
 
 function renderKpis(){
   const sold=D.sales.filter(s=>s.status==="sold"&&inPeriod(s.date));
-  const rev=sold.reduce((a,s)=>a+n(s.price),0), pr=sold.reduce((a,s)=>a+sprofit(s),0);
-  const lk=sold.filter(s=>PbyS[s.id]), lkC=lk.reduce((a,s)=>a+scost(s),0), lkP=lk.reduce((a,s)=>a+sprofit(s),0);
-  const nolink=sold.filter(s=>!PbyS[s.id]).length;
+  const rev=sold.reduce((a,s)=>a+myRev(s),0), pr=sold.reduce((a,s)=>a+myProfit(s),0);
+  const own=sold.filter(s=>!forFriend(s)), fr=sold.filter(forFriend);
+  const lk=own.filter(s=>PbyS[s.id]), lkC=lk.reduce((a,s)=>a+scost(s),0), lkP=lk.reduce((a,s)=>a+sprofit(s),0);
+  const nolink=own.filter(s=>!PbyS[s.id]).length;
+  const frNote=fr.length?(scope==="me"?` · <span style="color:#7dd3fc" title="Ventes pour des amis : seul ce que tu gardes est compté">+${fr.length} pour des amis</span>`:` · <span style="color:#7dd3fc">dont ${fr.length} pour des amis</span>`):"";
   const spent=D.purchases.filter(p=>inPeriod(p.date)).reduce((a,p)=>a+ptotal(p),0);
-  const freeP=D.purchases.filter(p=>p.status==="stock"&&!SbyP[p.id]), listed=D.sales.filter(s=>s.status==="listed");
+  const freeP=D.purchases.filter(p=>p.status==="stock"&&!SbyP[p.id]), listed=D.sales.filter(s=>s.status==="listed"&&(scope==="all"||!forFriend(s)));
   const stockV=freeP.reduce((a,p)=>a+ptotal(p),0)+listed.reduce((a,s)=>a+(ALLOC[s.id]||0),0);
   const listedV=listed.reduce((a,s)=>a+n(s.list_price),0);
   const d=sold.map(s=>{const ds=(PbyS[s.id]||[]).map(p=>P[p].date).filter(Boolean).sort();return ds.length?days(ds[0],s.date):null}).filter(x=>x!==null&&x>=0);
   const avgD=d.length?Math.round(d.reduce((a,b)=>a+b,0)/d.length):null;
   const k=[
-    ["Bénéfice net",`<span class="${pr>=0?"pos":"neg"}">${eur(pr)}</span>`,`${sold.length} vente${sold.length>1?"s":""}${nolink?` · <span style="color:var(--amber)" title="Sans achat lié, leur coût compte pour 0">${nolink} sans achat</span>`:""}`],
-    ["Chiffre d'affaires",eur(rev),sold.length?`panier moyen ${eur0(rev/sold.length)}`:"—"],
+    ["Bénéfice net",`<span class="${pr>=0?"pos":"neg"}">${eur(pr)}</span>`,`${scope==="me"?own.length:sold.length} vente${(scope==="me"?own.length:sold.length)>1?"s":""}${frNote}${nolink?` · <span style="color:var(--amber)" title="Sans achat lié, leur coût compte pour 0">${nolink} sans achat</span>`:""}`],
+    [scope==="me"?"Chiffre d'affaires":"Total vendu (absolu)",eur(rev),scope==="me"?(fr.length?`dont ${eur0(fr.reduce((a,s)=>a+n(s.commission),0))} gardés sur ventes d'amis`:own.length?`panier moyen ${eur0(rev/own.length)}`:"—"):(fr.length?`dont ${eur0(fr.reduce((a,s)=>a+n(s.price),0))} pour des amis`:"—")],
     ["Marge / coût",lkC>0?`${Math.round(lkP/lkC*100)} %`:"—",lk.length?`sur ${lk.length} vente${lk.length>1?"s":""} liée${lk.length>1?"s":""} · ${eur0(lkP/lk.length)} chacune`:"lie tes ventes à leurs achats"],
     ["Dépensé en achats",eur(spent),"prix + frais + port"],
     ["Stock immobilisé",eur(stockV),`${freeP.length} achat${freeP.length>1?"s":""} non revendu${freeP.length>1?"s":""} · ${listed.length} annonce${listed.length>1?"s":""}${listedV?` (${eur0(listedV)})`:""}`],
@@ -415,7 +444,7 @@ function renderKpis(){
 function renderChart(){
   const now=new Date(),months=[],NM=innerWidth<640?6:12;
   for(let m=NM-1;m>=0;m--){const d=new Date(now.getFullYear(),now.getMonth()-m,1);months.push({k:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`,l:d.toLocaleDateString("fr-FR",{month:"short"}).replace(".",""),v:0,n:0})}
-  D.sales.filter(s=>s.status==="sold"&&s.date).forEach(s=>{const m=months.find(x=>x.k===s.date.slice(0,7));if(m){m.v+=sprofit(s);m.n++}});
+  D.sales.filter(s=>s.status==="sold"&&s.date).forEach(s=>{const m=months.find(x=>x.k===s.date.slice(0,7));if(m){m.v+=myProfit(s);m.n++}});
   const W=NM===6?360:640,H=190,pad=NM===6?10:26,bw=(W-pad*2)/NM;
   const max=Math.max(1,...months.map(m=>m.v)),min=Math.min(0,...months.map(m=>m.v));
   const y=v=>12+(max-v)/(max-min)*(H-40);
@@ -429,7 +458,7 @@ function renderChart(){
   $("#chart").innerHTML=s+"</svg>";
 }
 function renderPlat(){
-  const g={};D.sales.filter(s=>s.status==="sold"&&inPeriod(s.date)).forEach(s=>{const p=s.platform||"Autre";(g[p]??={n:0,rev:0,pr:0});g[p].n++;g[p].rev+=n(s.price);g[p].pr+=sprofit(s)});
+  const g={};D.sales.filter(s=>s.status==="sold"&&inPeriod(s.date)).forEach(s=>{const p=s.platform||"Autre";(g[p]??={n:0,rev:0,pr:0});g[p].n++;g[p].rev+=myRev(s);g[p].pr+=myProfit(s)});
   const rows=Object.entries(g).sort((a,b)=>b[1].pr-a[1].pr);
   if(!rows.length){$("#plat").innerHTML=`<div class="empty" style="padding:24px">Pas encore de vente sur la période</div>`;return}
   const max=Math.max(...rows.map(r=>Math.abs(r[1].pr)),1);
@@ -444,11 +473,11 @@ function renderHint(){
 
 // ================= lists =================
 const SUBS={
-  sales:[["all","Toutes"],["listed","En vente"],["sold","Vendues"],["nolink","Sans achat lié"]],
+  sales:[["all","Toutes"],["listed","En vente"],["sold","Vendues"],["nolink","Sans achat lié"],["friends","Pour des amis"]],
   purchases:[["all","Tous"],["stock","En stock"],["linked","Revendus / liés"],["used","Utilisés"],["kept","Gardés"]],
 };
 function subFilter(i){
-  if(view==="sales")return sub==="all"||(sub==="nolink"?!PbyS[i.id]:i.status===sub);
+  if(view==="sales")return sub==="all"||(sub==="nolink"?!PbyS[i.id]&&!forFriend(i):sub==="friends"?forFriend(i):i.status===sub);
   if(sub==="all")return true;
   if(sub==="linked")return !!SbyP[i.id];
   if(sub==="stock")return i.status==="stock"&&!SbyP[i.id];
@@ -467,15 +496,19 @@ function chips(ids,kind){
 }
 function renderList(){
   const q=$("#q").value.trim().toLowerCase(), pf=$("#pf").value;
-  const L=(view==="sales"?D.sales:D.purchases).filter(i=>subFilter(i)&&(!pf||i.platform===pf)&&(!q||[i.name,i.category,i.notes].join(" ").toLowerCase().includes(q)));
+  const L=(view==="sales"?D.sales:D.purchases).filter(i=>subFilter(i)&&(!pf||i.platform===pf)&&(!q||[i.name,i.category,i.notes,i.owner].join(" ").toLowerCase().includes(q)));
   if(!L.length){$("#list").innerHTML=`<div class="empty">${(view==="sales"?D.sales:D.purchases).length?"Rien ne correspond.":view==="sales"?"Aucune vente pour l'instant.<br>Ajoute une annonce avec <b>+ Vente</b>.":"Aucun achat pour l'instant.<br>Ajoute-en un avec <b>+ Achat</b>."}</div>`;return}
   $("#list").innerHTML=L.map(view==="sales"?saleRow:purchaseRow).join("");
 }
 function saleRow(s){
   const sold=s.status==="sold", linked=PbyS[s.id]||[], c=scost(s), pr=sprofit(s);
-  let linkUI=linked.length?chips(linked,"p"):`<span class="lk add" data-pick="s:${s.id}">🔗 Lier un achat</span>`;
-  if(!linked.length){const b=bestFor(s,"sale");if(b)linkUI+=`<span class="sug" data-sug="${b.id}:${s.id}" title="Lier à cet achat"><span>💡 ${esc(b.name)} · ${eur0(ptotal(b))}</span><b>lier</b></span>`}
-  const right=sold?`<div class="p ${pr>=0?"pos":"neg"}">${pr>=0?"+":""}${eur(pr)}</div>`
+  const fr=forFriend(s);
+  let linkUI=fr?`<span class="own ${sold&&n(s.settled)?"ok":""}" title="${sold?(n(s.settled)?"Argent reversé":"À reverser : "+eur(owed(s))):"Vendu pour quelqu'un d'autre"}">👤 ${esc(s.owner)}${sold&&!n(s.settled)?" · à reverser "+eur0(owed(s)):sold?" · reversé ✓":""}</span>`:"";
+  linkUI+=linked.length?chips(linked,"p"):fr?"":`<span class="lk add" data-pick="s:${s.id}">🔗 Lier un achat</span>`;
+  if(!linked.length&&!fr){const b=bestFor(s,"sale");if(b)linkUI+=`<span class="sug" data-sug="${b.id}:${s.id}" title="Lier à cet achat"><span>💡 ${esc(b.name)} · ${eur0(ptotal(b))}</span><b>lier</b></span>`}
+  const mp=myProfit(s);
+  const right=sold&&fr&&scope==="me"?`<div class="p ${mp>0?"pos":"mut"}" title="Ce que tu gardes">${mp>0?"+"+eur(mp):"0 €"}<div class="mut" style="font-size:11px;font-weight:500">pour toi</div></div>`
+    :sold?`<div class="p ${pr>=0?"pos":"neg"}">${pr>=0?"+":""}${eur(pr)}</div>`
     :n(s.list_price)?`<div class="p mut" title="si vendu au prix affiché">≈ ${(()=>{const e=n(s.list_price)-c;return (e>=0?"+":"")+eur0(e)})()}</div>`:`<div class="p mut">—</div>`;
   return `<div class="item" data-s="${s.id}">${thumb(s,"s")}
     <div class="main" style="min-width:0"><div class="n">${esc(s.name)}</div>
@@ -513,8 +546,9 @@ function fillPlats(){
   document.querySelectorAll("select[data-plat]").forEach(s=>s.innerHTML=`<option value=""></option>`+PLATS.map(p=>`<option>${p}</option>`).join(""));
   $("#pf").innerHTML=`<option value="">Toutes plateformes</option>`+PLATS.map(p=>`<option>${p}</option>`).join("");
 }
-function fill(form,obj){for(const [k,v] of Object.entries(obj)){const el=form.elements[k];if(el)el.value=NUMS.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}}
-function read(form){const o=Object.fromEntries(new FormData(form));NUMS.forEach(k=>{if(k in o)o[k]=(o[k]||"").toString().replace(",",".")});return o}
+function fill(form,obj){for(const [k,v] of Object.entries(obj)){const el=form.elements[k];if(!el)continue;if(el.type==="checkbox")el.checked=!!n(v);else el.value=NUMS.includes(k)?(n(v)?String(v).replace(".",","):""):(v??"")}}
+function read(form){const o=Object.fromEntries(new FormData(form));NUMS.forEach(k=>{if(k in o)o[k]=(o[k]||"").toString().replace(",",".")});
+  form.querySelectorAll("input[type=checkbox][name]").forEach(c=>o[c.name]=c.checked?1:0);return o}
 
 // ---- photo field (both forms) ----
 function phPreview(row){
@@ -583,9 +617,15 @@ function salePreview(){
   if(o.status==="sold"){v=n(o.price)-n(o.fees)-n(o.ship_cost)-c;l="Bénéfice net"}
   else if(n(o.list_price)){v=n(o.list_price)-c;l="Bénéfice si vendu au prix affiché"}
   else{v=-c;l="Coût"}
+  if((o.owner||"").trim()){
+    const base=o.status==="sold"?n(o.price):n(o.list_price), back=base-n(o.fees)-n(o.ship_cost)-n(o.commission);
+    $("#pvls").textContent=`${o.status==="sold"?"À reverser":"À reverser si vendu"} à ${o.owner.trim()} : ${eur(back)} · pour toi`;
+    const b=$("#pvs");b.textContent=eur(n(o.commission)-c);b.className=n(o.commission)-c>0?"pos":"";return;
+  }
   $("#pvls").textContent=l+(ids.length?` · coût ${eur(c)}`:"");const b=$("#pvs");b.textContent=eur(v);b.className=v>0?"pos":v<0?"neg":"";
 }
 fs.addEventListener("input",salePreview);
+fs.addEventListener("change",salePreview);
 fs.elements.status.addEventListener("change",e=>{if(e.target.value==="sold"){if(!fs.elements.date.value)fs.elements.date.value=today();if(!fs.elements.price.value)fs.elements.price.value=fs.elements.list_price.value}salePreview()});
 fs.addEventListener("submit",async e=>{
   e.preventDefault();const o=read(fs);
@@ -736,6 +776,9 @@ $("#list").addEventListener("change",async e=>{
 $("#views").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;view=b.dataset.v;sub="all";renderViews();renderList()});
 $("#subtabs").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;sub=b.dataset.s;renderViews();renderList()});
 $("#hint").addEventListener("click",e=>{if(e.target.closest("#showSug")){view="sales";sub="nolink";renderViews();renderList();$("#views").scrollIntoView({behavior:"smooth"})}});
+$("#scope").addEventListener("click",e=>{const b=e.target.closest("[data-sc]");if(!b)return;scope=b.dataset.sc;try{localStorage.setItem("fd_scope",scope)}catch{}
+  document.querySelectorAll("#scope button").forEach(x=>x.classList.toggle("on",x===b));renderKpis();renderChart();renderPlat();renderList()});
+$("#friends").addEventListener("click",e=>{const f=e.target.closest("[data-friend]");if(!f)return;view="sales";sub="friends";$("#q").value=f.dataset.friend;renderViews();renderList();$("#views").scrollIntoView({behavior:"smooth"})});
 $("#period").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;document.querySelectorAll("#period button").forEach(x=>x.classList.toggle("on",x===b));renderKpis();renderPlat()});
 $("#q").addEventListener("input",renderList);$("#pf").addEventListener("change",renderList);
 function toggleMenu(e){e.stopPropagation();$("#menu").classList.toggle("open")}
@@ -783,6 +826,7 @@ $("#updgo").onclick=async()=>{
   }catch(e){body.innerHTML=`<div class="neg">${esc(e.message)}</div>`}
 };
 
+document.querySelectorAll("#scope button").forEach(x=>x.classList.toggle("on",x.dataset.sc===scope));
 fillPlats(); showVersion(); load().catch(e=>toast("Serveur injoignable : "+e.message));
 </script>
 </body>

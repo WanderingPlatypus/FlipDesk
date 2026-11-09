@@ -40,7 +40,7 @@ PASSWORD = os.environ.get("FLIPDESK_PASSWORD", "")
 STATIC = HERE / "static"
 IMG = DB_PATH.parent / "img"   # photos: uploads and cached copies of listing photos
 IMG_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
-VERSION = "2.1"
+VERSION = "2.2"
 
 _lock = threading.Lock()
 

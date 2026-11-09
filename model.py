@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS sales (
   url TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   photo TEXT DEFAULT '',
+  owner TEXT DEFAULT '',
+  commission REAL DEFAULT 0,
+  settled REAL DEFAULT 0,
   ext_ids TEXT DEFAULT '',
   created_at TEXT, updated_at TEXT
 );
@@ -57,7 +60,8 @@ FIELDS = {
                   "status": TXT, "url": TXT, "notes": TXT, "photo": TXT},
     "sales": {"name": TXT, "category": TXT, "condition": TXT, "status": TXT, "platform": TXT,
               "list_price": NUM, "list_date": TXT, "date": TXT, "price": NUM, "fees": NUM,
-              "ship_cost": NUM, "repair_cost": NUM, "url": TXT, "notes": TXT, "photo": TXT},
+              "ship_cost": NUM, "repair_cost": NUM, "url": TXT, "notes": TXT, "photo": TXT,
+              "owner": TXT, "commission": NUM, "settled": NUM},
 }
 STATUSES = {"purchases": {"stock", "kept", "used"}, "sales": {"listed", "sold"}}
 SALE_EXT = ("vinted:item:", "vinted:tx:", "lbc:ad:", "lbc:tx:")
@@ -199,13 +203,16 @@ def export_rows(c, kind):
         return rows, cols
     alloc = allocate(data)
     cols = ["id", "name", "category", "status", "platform", "list_price", "date", "price", "fees", "ship_cost",
-            "repair_cost", "cout_achat", "benefice", "achats_lies", "notes"]
+            "repair_cost", "cout_achat", "benefice", "achats_lies", "pour", "commission", "a_reverser", "reverse", "notes"]
     rows = []
     for s in data["sales"]:
         r = dict(s)
         r["cout_achat"] = round(alloc[s["id"]], 2)
         r["benefice"] = round(s["price"] - s["fees"] - s["ship_cost"] - s["repair_cost"] - alloc[s["id"]], 2) if s["status"] == "sold" else ""
         r["achats_lies"] = ", ".join(names_p[p] for p, sid in data["links"] if sid == s["id"])
+        r["pour"] = s["owner"]
+        r["a_reverser"] = round(s["price"] - s["fees"] - s["ship_cost"] - s["commission"], 2) if s["owner"] and s["status"] == "sold" else ""
+        r["reverse"] = ("oui" if s["settled"] else "non") if s["owner"] else ""
         rows.append(r)
     return rows, cols
 
@@ -280,6 +287,10 @@ def migrate(c):
         cols = {r[1] for r in c.execute(f"PRAGMA table_info({t})")}
         if "photo" not in cols:
             c.execute(f"ALTER TABLE {t} ADD COLUMN photo TEXT DEFAULT ''")
+        if t == "sales":  # sales made for a friend (2.2)
+            for col, typ in (("owner", "TEXT DEFAULT ''"), ("commission", "REAL DEFAULT 0"), ("settled", "REAL DEFAULT 0")):
+                if col not in cols:
+                    c.execute(f"ALTER TABLE sales ADD COLUMN {col} {typ}")
     has_v1 = c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='items'").fetchone()
     if has_v1:
         items = [dict(r) for r in c.execute("SELECT * FROM items ORDER BY id")]
