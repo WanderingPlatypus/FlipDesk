@@ -1,3 +1,4 @@
+const ext = globalThis.browser || globalThis.chrome; // Firefox | Chrome
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ago = t => {
@@ -6,7 +7,7 @@ const ago = t => {
 };
 
 async function render() {
-  const { last = {} } = await browser.storage.local.get("last");
+  const { last = {} } = await ext.storage.local.get("last");
   $("#plats").innerHTML = ["Vinted", "Leboncoin"].map(p => {
     const l = last[p];
     let body;
@@ -23,7 +24,7 @@ async function render() {
 }
 
 async function ping() {
-  const r = await browser.runtime.sendMessage({ type: "ping" });
+  const r = await ext.runtime.sendMessage({ type: "ping" });
   const el = $("#srv");
   el.textContent = r.ok ? "serveur OK" : "serveur injoignable";
   el.className = "pill " + (r.ok ? "ok" : "bad");
@@ -33,16 +34,16 @@ async function ping() {
 $("#all").onclick = async () => {
   const b = $("#all");
   b.disabled = true; b.textContent = "Synchronisation… (onglets en arrière-plan)";
-  await browser.runtime.sendMessage({ type: "syncAll" });
+  await ext.runtime.sendMessage({ type: "syncAll" });
   b.disabled = false; b.textContent = "Synchroniser tout";
   render();
 };
 $("#open").onclick = async () => {
-  const { server } = await browser.storage.local.get("server");
-  if (server) browser.tabs.create({ url: server }); else browser.runtime.openOptionsPage();
+  const { server } = await ext.storage.local.get("server");
+  if (server) ext.tabs.create({ url: server }); else ext.runtime.openOptionsPage();
   window.close();
 };
-$("#opts").onclick = () => { browser.runtime.openOptionsPage(); window.close(); };
-browser.storage.onChanged.addListener(render);
-browser.runtime.sendMessage({ type: "seen" });
+$("#opts").onclick = () => { ext.runtime.openOptionsPage(); window.close(); };
+ext.storage.onChanged.addListener(render);
+ext.runtime.sendMessage({ type: "seen" });
 render(); ping();

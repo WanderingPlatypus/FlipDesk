@@ -1,6 +1,7 @@
 // FlipDesk Sync - Vinted: reads your listings, sales and purchases with your
 // logged-in session (same requests as vinted.fr itself) and sends them to FlipDesk.
 (async () => {
+  const browser = globalThis.browser || globalThis.chrome; // Firefox | Chrome
   const PLATFORM = "Vinted";
   const CLOTHES = /robe|jupe|legging|chemise|gonna|abito|skirt|combi|bottes|pantalon|ensemble|escarpin|vestido|kleedje|jean|pull|veste|manteau|t-shirt|tee-shirt|sweat|top |blouse|short|chaussure|basket|sneaker|sac |photocard/i;
   const st = await browser.runtime.sendMessage({ type: "shouldSync", platform: PLATFORM });

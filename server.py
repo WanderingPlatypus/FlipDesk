@@ -44,7 +44,7 @@ EXT_DIR = HERE / "extension"
 SIGNED_XPI = DB_PATH.parent / "flipdesk-sync.xpi"   # signed by Mozilla, uploaded from the dashboard
 BUNDLED_XPI = HERE / "signed" / "flipdesk-sync.xpi"  # signed version shipped with FlipDesk
 IMG_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
-VERSION = "2.3"
+VERSION = "2.4"
 
 _lock = threading.Lock()
 
@@ -94,12 +94,25 @@ def xpi_version(data_or_path):
     return m.get("version", ""), signed, gid
 
 
-def extension_zip():
+def extension_zip(kind="firefox"):
+    """Firefox: extension/ as is. Chrome: the shared files + extension/chrome/ (MV3
+    manifest, service worker, PNG icons) at the root of the zip."""
+    files = {}
+    for f in sorted(EXT_DIR.rglob("*")):
+        rel = f.relative_to(EXT_DIR).as_posix()
+        if not f.is_file() or f.name.startswith(".") or rel.startswith("chrome/"):
+            continue
+        if kind == "chrome" and rel in ("manifest.json", "background.js"):
+            continue
+        files[rel] = f
+    if kind == "chrome":
+        for f in sorted((EXT_DIR / "chrome").rglob("*")):
+            if f.is_file() and not f.name.startswith("."):
+                files[f.relative_to(EXT_DIR / "chrome").as_posix()] = f
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(EXT_DIR.rglob("*")):
-            if f.is_file() and not f.name.startswith("."):
-                z.write(f, f.relative_to(EXT_DIR).as_posix())
+        for rel, f in sorted(files.items()):
+            z.write(f, rel)
     return buf.getvalue()
 
 
@@ -123,8 +136,11 @@ def extension_info():
     src = ""
     if (EXT_DIR / "manifest.json").exists():
         src = json.loads((EXT_DIR / "manifest.json").read_text()).get("version", "")
+    chrome = ""
+    if (EXT_DIR / "chrome" / "manifest.json").exists():
+        chrome = json.loads((EXT_DIR / "chrome" / "manifest.json").read_text()).get("version", "")
     f = best_signed()
-    return {"source_version": src, "signed_version": xpi_version(f)[0] if f else None}
+    return {"source_version": src, "signed_version": xpi_version(f)[0] if f else None, "chrome_version": chrome}
 
 
 def now():
@@ -272,6 +288,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/extension/flipdesk-sync.zip":
             return self._send(200, extension_zip(), "application/zip",
                               {"Content-Disposition": 'attachment; filename="flipdesk-sync.zip"'})
+        if path == "/extension/flipdesk-sync-chrome.zip":
+            return self._send(200, extension_zip("chrome"), "application/zip",
+                              {"Content-Disposition": 'attachment; filename="flipdesk-sync-chrome.zip"'})
         if path == "/extension/flipdesk-sync.xpi":
             f = best_signed()
             if not f:

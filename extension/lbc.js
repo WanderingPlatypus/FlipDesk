@@ -2,6 +2,7 @@
 // page, so instead of calling it we read the answers the page itself receives when you
 // open "Mes annonces" (listings) and "Mes transactions" (sales / purchases).
 (() => {
+  const browser = globalThis.browser || globalThis.chrome; // Firefox | Chrome
   const PLATFORM = "Leboncoin";
   const CLOTHES = /robe|jupe|legging|chemise|pantalon|veste|manteau|pull|sweat|chaussure|basket|sac /i;
   let forced = false;
