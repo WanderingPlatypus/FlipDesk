@@ -59,7 +59,9 @@ The `extension/` folder is a Firefox add-on that sends your listings, sales and 
 - Never duplicates: every item remembers its Vinted/Leboncoin ids; an item listed on both sites stays one item; a sale turns the listing into *Vendu*; deleted items are never re-created. It never overwrites your costs, lots or notes.
 - Warns you when something sold on one site is still online on the other.
 
-Install: build `flipdesk-sync.zip` (zip the *contents* of `extension/`), then either
+Easiest: in the dashboard, **⋯ → 🧩 Extension Firefox** walks you through it (download the zip, sign it once per version on addons.mozilla.org, upload the signed `.xpi` back; then any computer can download it from there and install it via about:addons → ⚙ → *Install Add-on From File*).
+
+Manually: build `flipdesk-sync.zip` (zip the *contents* of `extension/`), then either
 - **permanent**: sign it for free at addons.mozilla.org → Developer Hub → *Submit a new add-on* → **On your own** → upload the zip → install the signed `.xpi` it gives you;
 - **quick test**: `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → pick `extension/manifest.json` (removed when Firefox restarts).
 

@@ -15,6 +15,7 @@ Config via environment variables:
 import base64
 import hashlib
 import urllib.request
+import zipfile
 import csv
 import io
 import json
@@ -39,8 +40,10 @@ DB_PATH = Path(os.environ.get("FLIPDESK_DB", str(HERE / "data" / "flipdesk.db"))
 PASSWORD = os.environ.get("FLIPDESK_PASSWORD", "")
 STATIC = HERE / "static"
 IMG = DB_PATH.parent / "img"   # photos: uploads and cached copies of listing photos
+EXT_DIR = HERE / "extension"
+SIGNED_XPI = DB_PATH.parent / "flipdesk-sync.xpi"   # signed by Mozilla, uploaded from the dashboard
 IMG_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
-VERSION = "2.2"
+VERSION = "2.3"
 
 _lock = threading.Lock()
 
@@ -79,6 +82,37 @@ def cached_image(url):
     f = IMG / f"c_{key}{IMG_TYPES[ctype]}"
     f.write_bytes(data)
     return f
+
+
+def xpi_version(data_or_path):
+    with zipfile.ZipFile(data_or_path if isinstance(data_or_path, Path) else io.BytesIO(data_or_path)) as z:
+        names = set(z.namelist())
+        m = json.loads(z.read("manifest.json"))
+        signed = any(n.startswith("META-INF/") for n in names)
+    gid = m.get("browser_specific_settings", {}).get("gecko", {}).get("id", "")
+    return m.get("version", ""), signed, gid
+
+
+def extension_zip():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in sorted(EXT_DIR.rglob("*")):
+            if f.is_file() and not f.name.startswith("."):
+                z.write(f, f.relative_to(EXT_DIR).as_posix())
+    return buf.getvalue()
+
+
+def extension_info():
+    src = ""
+    if (EXT_DIR / "manifest.json").exists():
+        src = json.loads((EXT_DIR / "manifest.json").read_text()).get("version", "")
+    signed = None
+    if SIGNED_XPI.exists():
+        try:
+            signed = xpi_version(SIGNED_XPI)[0]
+        except (zipfile.BadZipFile, KeyError, ValueError):
+            signed = None
+    return {"source_version": src, "signed_version": signed}
 
 
 def now():
@@ -221,6 +255,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._err(404, "not found")
             return self._send(200, f.read_bytes(), "image/" + {"jpg": "jpeg"}.get(f.suffix[1:], f.suffix[1:]),
                               {"Cache-Control": "max-age=31536000, immutable"})
+        if path == "/api/extension":
+            return self._send(200, extension_info())
+        if path == "/extension/flipdesk-sync.zip":
+            return self._send(200, extension_zip(), "application/zip",
+                              {"Content-Disposition": 'attachment; filename="flipdesk-sync.zip"'})
+        if path == "/extension/flipdesk-sync.xpi":
+            if not SIGNED_XPI.exists():
+                return self._err(404, "Pas encore de version signée")
+            return self._send(200, SIGNED_XPI.read_bytes(), "application/x-xpinstall",
+                              {"Content-Disposition": 'attachment; filename="flipdesk-sync.xpi"'})
         if path == "/api/data":
             with db() as c:
                 return self._send(200, model.dump(c))
@@ -259,6 +303,22 @@ class Handler(BaseHTTPRequestHandler):
         if not self._guard():
             return
         path = self._path()
+        if path == "/api/extension/upload":  # raw body: the .xpi signed by addons.mozilla.org
+            n = int(self.headers.get("Content-Length") or 0)
+            if not 0 < n <= 10 * 1024 * 1024:
+                return self._err(400, "Fichier .xpi manquant ou trop gros")
+            data = self.rfile.read(n)
+            try:
+                ver, signed, gid = xpi_version(data)
+            except (zipfile.BadZipFile, KeyError, ValueError):
+                return self._err(400, "Ce n'est pas une extension Firefox (.xpi)")
+            if not gid.startswith("flipdesk-sync@"):
+                return self._err(400, "Ce fichier n'est pas l'extension FlipDesk Sync")
+            if not signed:
+                return self._err(400, "Ce fichier n'est pas signé : signe-le d'abord sur addons.mozilla.org")
+            SIGNED_XPI.parent.mkdir(parents=True, exist_ok=True)
+            SIGNED_XPI.write_bytes(data)
+            return self._send(201, {"signed_version": ver})
         if path == "/api/upload":  # raw image body -> /img/<name>
             ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip()
             n = int(self.headers.get("Content-Length") or 0)

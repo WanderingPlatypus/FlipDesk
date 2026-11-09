@@ -177,6 +177,7 @@ svg text{fill:var(--mut);font-size:10.5px}
         <button onclick="location.href='/api/backup.json'">💾 Télécharger une sauvegarde</button>
         <button onclick="document.getElementById('imp').click()">📥 Restaurer / importer…</button>
         <hr style="border:0;border-top:1px solid var(--line);margin:6px 4px">
+        <button onclick="openExt()">🧩 Extension Firefox</button>
         <button onclick="openUpdate()">🔄 Mettre à jour le serveur</button>
         <div id="ver" style="color:var(--mut);font-size:11.5px;padding:4px 11px 2px"></div>
       </div>
@@ -280,6 +281,10 @@ svg text{fill:var(--mut);font-size:10.5px}
   </div>
 </dialog>
 
+<dialog id="dext" style="width:min(560px,96vw)">
+  <div class="mh"><h2>🧩 Extension Firefox</h2><button type="button" class="btn sm" onclick="dext.close()">✕</button></div>
+  <div class="mb" id="extbody"></div>
+</dialog>
 <dialog id="upd" style="width:min(480px,94vw)">
   <div class="mh"><h2>Mise à jour du serveur</h2><button type="button" class="btn sm" onclick="upd.close()">✕</button></div>
   <div class="mb" id="updbody" style="min-height:80px"></div>
@@ -794,6 +799,49 @@ $("#imp").addEventListener("change",async e=>{
   }catch(err){toast("Import impossible : "+err.message)}
   e.target.value="";
 });
+
+// ================= Firefox extension =================
+function copyText(t){ // the clipboard API only works on https pages
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast("Adresse copiée"));
+  else prompt("Copie cette adresse :",t);
+}
+const dext=$("#dext");
+const step=(nb,title,body)=>`<div style="display:grid;grid-template-columns:28px 1fr;gap:10px;margin:0 0 14px"><div style="width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px">${nb}</div><div><b>${title}</b><div class="mut" style="font-size:13.5px;margin-top:3px">${body}</div></div></div>`;
+async function openExt(){
+  $("#menu").classList.remove("open");
+  let info={};try{info=await api("/api/extension")}catch(e){}
+  const src=info.source_version, sig=info.signed_version, upToDate=sig&&sig===src;
+  const isFx=/firefox/i.test(navigator.userAgent);
+  const copy=`<code style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px">${esc(location.origin)}</code> <button class="btn xs" onclick="copyText(location.origin)">Copier</button>`;
+  let h=`<p style="margin:0 0 14px">L'extension envoie automatiquement tes annonces, ventes et achats Vinted et Leboncoin vers FlipDesk.</p>`;
+  if(sig){
+    h+=`<div class="preview" style="margin-bottom:16px"><span>${upToDate?"✓ Version signée à jour":"Version signée disponible"} <span class="mut">· v${esc(sig)}</span></span><a class="btn primary" href="/extension/flipdesk-sync.xpi" download>⬇ Télécharger</a></div>`;
+    h+=step(1,"Installer dans Firefox",`Télécharge le fichier ci-dessus, puis dans Firefox ouvre <b>about:addons</b> → ⚙ → <b>Installer un module depuis un fichier…</b> et choisis <i>flipdesk-sync.xpi</i>.${isFx?"":" <span style=\"color:var(--amber)\">(ouvre cette page dans Firefox)</span>"}`);
+    h+=step(2,"Le relier à FlipDesk",`Clique sur l'icône FlipDesk dans la barre de Firefox → <b>Réglages</b>, et colle l'adresse : ${copy}`);
+    if(!upToDate&&src)h+=`<div class="hintbar" style="margin:4px 0 14px">⬆ <span>La version <b>${esc(src)}</b> de l'extension est disponible (signée : ${esc(sig)}). Signe-la comme ci-dessous pour mettre à jour.</span></div>`;
+  }else{
+    h+=`<div class="hintbar" style="margin:0 0 16px">ℹ️ <span>Firefox n'installe que les extensions <b>signées par Mozilla</b>. C'est gratuit et à faire une seule fois par version : ensuite, tu l'installes depuis cette page sur tous tes ordinateurs.</span></div>`;
+  }
+  if(!upToDate){
+    h+=`<details ${sig?"":"open"} style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;margin-bottom:12px">${sig?"Signer la nouvelle version":"Signer l'extension (une seule fois par version)"}</summary>`;
+    h+=step("a","Télécharger l'extension",`<a class="btn sm" href="/extension/flipdesk-sync.zip" download>⬇ flipdesk-sync.zip</a> <span class="mut">v${esc(src||"?")}</span>`);
+    h+=step("b","La faire signer par Mozilla",`Sur <a href="https://addons.mozilla.org/developers/addon/submit/distribution" target="_blank" rel="noopener">addons.mozilla.org → Soumettre un module</a>, connecte-toi, choisis <b>« Sur votre propre site »</b> (On your own), envoie le zip. Après la validation automatique (quelques minutes), télécharge le fichier <b>.xpi signé</b>.`);
+    h+=step("c","L'envoyer ici",`<input type="file" id="xpiFile" accept=".xpi,application/x-xpinstall" hidden><button class="btn sm" onclick="$('#xpiFile').click()">⬆ Envoyer le .xpi signé</button>`);
+    h+=`</details>`;
+  }
+  h+=`<details style="margin-top:6px"><summary class="mut" style="cursor:pointer;font-size:13px">Juste l'essayer sans signer</summary><div class="mut" style="font-size:13px;margin-top:8px">Télécharge le zip, décompresse-le, puis dans Firefox ouvre <b>about:debugging#/runtime/this-firefox</b> → <b>Charger un module temporaire…</b> → choisis <i>manifest.json</i>. Il disparaît au redémarrage de Firefox.</div></details>`;
+  $("#extbody").innerHTML=h;
+  const f=$("#xpiFile");
+  if(f)f.onchange=async()=>{
+    const file=f.files[0];if(!file)return;
+    try{
+      const r=await fetch("/api/extension/upload",{method:"POST",headers:{"Content-Type":"application/x-xpinstall"},body:file});
+      const j=await r.json();if(!r.ok)throw new Error(j.error);
+      toast(`Extension v${j.signed_version} enregistrée ✓`);openExt();
+    }catch(err){toast(err.message)}
+  };
+  if(!dext.open)dext.showModal();
+}
 
 // ================= server update =================
 const upd=$("#upd");
