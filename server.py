@@ -42,6 +42,7 @@ STATIC = HERE / "static"
 IMG = DB_PATH.parent / "img"   # photos: uploads and cached copies of listing photos
 EXT_DIR = HERE / "extension"
 SIGNED_XPI = DB_PATH.parent / "flipdesk-sync.xpi"   # signed by Mozilla, uploaded from the dashboard
+BUNDLED_XPI = HERE / "signed" / "flipdesk-sync.xpi"  # signed version shipped with FlipDesk
 IMG_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
 VERSION = "2.3"
 
@@ -102,17 +103,28 @@ def extension_zip():
     return buf.getvalue()
 
 
+def vkey(v):
+    return tuple(int(x) if x.isdigit() else 0 for x in (v or "0").split("."))
+
+
+def best_signed():
+    """Newest signed .xpi available: uploaded from the dashboard, or shipped with FlipDesk."""
+    found = []
+    for f in (SIGNED_XPI, BUNDLED_XPI):
+        if f.exists():
+            try:
+                found.append((vkey(xpi_version(f)[0]), f))
+            except (zipfile.BadZipFile, KeyError, ValueError):
+                pass
+    return max(found)[1] if found else None
+
+
 def extension_info():
     src = ""
     if (EXT_DIR / "manifest.json").exists():
         src = json.loads((EXT_DIR / "manifest.json").read_text()).get("version", "")
-    signed = None
-    if SIGNED_XPI.exists():
-        try:
-            signed = xpi_version(SIGNED_XPI)[0]
-        except (zipfile.BadZipFile, KeyError, ValueError):
-            signed = None
-    return {"source_version": src, "signed_version": signed}
+    f = best_signed()
+    return {"source_version": src, "signed_version": xpi_version(f)[0] if f else None}
 
 
 def now():
@@ -261,9 +273,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, extension_zip(), "application/zip",
                               {"Content-Disposition": 'attachment; filename="flipdesk-sync.zip"'})
         if path == "/extension/flipdesk-sync.xpi":
-            if not SIGNED_XPI.exists():
+            f = best_signed()
+            if not f:
                 return self._err(404, "Pas encore de version signée")
-            return self._send(200, SIGNED_XPI.read_bytes(), "application/x-xpinstall",
+            return self._send(200, f.read_bytes(), "application/x-xpinstall",
                               {"Content-Disposition": 'attachment; filename="flipdesk-sync.xpi"'})
         if path == "/api/data":
             with db() as c:
