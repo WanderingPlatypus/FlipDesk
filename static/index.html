@@ -262,7 +262,7 @@ svg text{fill:var(--mut);font-size:10.5px}
 <dialog id="dl" style="width:min(560px,96vw)">
   <div class="mh"><h2 id="tl">Lier</h2><button type="button" class="btn sm" onclick="dl.close()">✕</button></div>
   <div class="mb">
-    <input id="lq" placeholder="Rechercher…" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px">
+    <div style="display:flex;gap:8px"><input id="lq" placeholder="Rechercher…" style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px"><button type="button" class="btn primary" id="lnew">➕ Créer</button></div>
     <div class="cands" id="lc"></div>
   </div>
 </dialog>
@@ -604,9 +604,9 @@ $("#slSug").addEventListener("click",async e=>{const b=e.target.closest("[data-f
   if(curS){await link(pid,curS)}else pendS.push(pid);renderSaleLinks();salePreview()});
 
 // ---- purchase ----
-function openPurchase(p=null){
-  curP=p?.id??null; pendP=[]; fp.reset();
-  fill(fp,p?{...p}:{status:"stock",date:today()});
+function openPurchase(p=null,opts={}){
+  curP=p?.id??null; pendP=opts.sale_ids?[...opts.sale_ids]:[]; fp.reset();
+  fill(fp,p?{...p}:{status:"stock",date:today(),...(opts.prefill||{})});
   $("#tp").textContent=p?"Achat":"Nouvel achat";
   $("#pDel").style.visibility=p?"visible":"hidden";
   phPreview(fp.querySelector(".phrow"));
@@ -661,7 +661,28 @@ function openPicker(kind,id,{name}){
   pick={kind,id,name};
   $("#tl").textContent=kind==="sale"?`Lier « ${name} » à un achat`:`Lier « ${name} » à une vente`;
   $("#lq").value="";renderPicker();dl.showModal();$("#lq").focus();
+  $("#lnew").textContent=kind==="sale"?"➕ Créer un achat":"➕ Créer une vente";
 }
+// create the other side directly, already linked to the current record
+$("#lnew").onclick=async()=>{
+  const {kind,id}=pick, q=$("#lq").value.trim();
+  const form=kind==="sale"?fs:fp, wasOpen=(kind==="sale"?ds:dp).open;
+  let cur=id;
+  try{
+    if(wasOpen){ // save what's in the form first (or create the record if it's new)
+      const o=read(form);
+      if(!o.name){toast("Donne d'abord un nom");return}
+      if(cur)await put(`/api/${kind==="sale"?"sales":"purchases"}/${cur}`,o);
+      else cur=(await post(kind==="sale"?"/api/sales":"/api/purchases",kind==="sale"?{...o,purchase_ids:pendS}:{...o,sale_ids:pendP})).id;
+    }
+    await load();
+    const src=kind==="sale"?S[cur]:P[cur];
+    dl.close();ds.close();dp.close();
+    if(kind==="sale")openPurchase(null,{sale_ids:[cur],prefill:{name:q||src.name,category:src.category}});
+    else openSale(null,{purchase_ids:[cur],prefill:{name:q||src.name,category:src.category,platform:src.platform,photo:src.photo}});
+    $(kind==="sale"?"#tp":"#ts").textContent=kind==="sale"?"Nouvel achat lié":"Nouvelle vente liée";
+  }catch(err){toast("Erreur : "+err.message)}
+};
 function renderPicker(){
   const {kind,id}=pick, q=$("#lq").value.trim().toLowerCase();
   const self=kind==="sale"?(id?S[id]:{...read(fs)}):(id?P[id]:{...read(fp)});
