@@ -9,6 +9,7 @@ FlipDesk v2 keeps **purchases** (Achats) and **sales** (Ventes / annonces) as se
 - each purchase's cost is spread over its linked sales (by sale price, or asking price while listed), so every sale shows its real profit and every purchase shows what it brought back
 - 🏷️ **Ventes** view: listed / sold, the purchases each one came from, *Vendu ✓* in one click
 - 🛒 **Achats** view: in stock / resold / used / kept, what each purchase became, *➕ En vente* to create the linked listing
+- 📷 **photos**: taken from the listings by the extension (kept on your server, so they survive deleted listings), or added from your phone; a purchase without its own photo shows its sale's, and vice versa
 - 💡 **link suggestions** when a sale and a purchase clearly look like the same thing (one click)
 - **Dashboard:** net profit, revenue, margin on linked sales, money spent, capital tied up (unsold purchases + listings), average days to sell, profit per month, per selling platform; period filter
 - CSV exports (sales with cost & profit, purchases), JSON backup / restore (v1 backups are converted on import)

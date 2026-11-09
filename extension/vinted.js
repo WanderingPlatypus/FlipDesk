@@ -16,6 +16,12 @@
     return r.json();
   };
   const day = s => (s || "").slice(0, 10);
+  const pic = it => {
+    const ph = (it.photos || []).find(p => p.is_main) || (it.photos || [])[0];
+    if (!ph) return "";
+    return ((ph.thumbnails || []).find(t => t.type === "thumb310x430") || {}).url || ph.url || "";
+  };
+  const big = u => (u || "").replace("/150x210/", "/310x430/");
 
   try {
     const opts = await browser.storage.local.get({ purchases: true, skipClothes: true, txItem: {} });
@@ -30,10 +36,11 @@
       for (const it of j.items || []) {
         if (it.is_draft) continue;
         const ts = it.photos && it.photos[0] && it.photos[0].high_resolution && it.photos[0].high_resolution.timestamp;
+        const photo = pic(it);
         listings.push({
           ext: `vinted:item:${it.id}`, title: it.title, price: +(it.price && it.price.amount || 0),
           active: !it.is_closed && !it.is_hidden, sold: !!it.is_closed && it.item_closing_action === "sold",
-          url: it.url || (it.path ? location.origin + it.path : ""), condition: it.status || "",
+          url: it.url || (it.path ? location.origin + it.path : ""), condition: it.status || "", photo,
           date: ts ? new Date(ts * 1000).toISOString().slice(0, 10) : ""
         });
       }
@@ -62,7 +69,8 @@
       }
       sales.push({
         ext: `vinted:tx:${id}`, title: o.title, price: +(o.price && o.price.amount || 0), date: day(o.date),
-        cancelled: o.transaction_user_status === "failed", item_ext: txItem[id] ? `vinted:item:${txItem[id]}` : null
+        cancelled: o.transaction_user_status === "failed", item_ext: txItem[id] ? `vinted:item:${txItem[id]}` : null,
+        photo: big(o.photo_url)
       });
     }
     await browser.storage.local.set({ txItem });
@@ -73,7 +81,7 @@
         if (o.transaction_user_status === "failed") continue;
         if (opts.skipClothes && CLOTHES.test(o.title)) continue;
         purchases.push({ ext: `vinted:buy:${o.transaction_id}`, title: o.title, price: +(o.price && o.price.amount || 0),
-          date: day(o.date), note: "total payé, frais de protection et port inclus" });
+          date: day(o.date), photo: big(o.photo_url), note: "total payé, frais de protection et port inclus" });
       }
     }
     await browser.runtime.sendMessage({ type: "sync", payload: { platform: PLATFORM, listings, sales, purchases } });

@@ -13,6 +13,8 @@ Config via environment variables:
   FLIPDESK_PASSWORD  (optional - enables HTTP Basic auth, any username)
 """
 import base64
+import hashlib
+import urllib.request
 import csv
 import io
 import json
@@ -36,7 +38,9 @@ HOST = os.environ.get("FLIPDESK_HOST", "0.0.0.0")
 DB_PATH = Path(os.environ.get("FLIPDESK_DB", str(HERE / "data" / "flipdesk.db")))
 PASSWORD = os.environ.get("FLIPDESK_PASSWORD", "")
 STATIC = HERE / "static"
-VERSION = "2.0"
+IMG = DB_PATH.parent / "img"   # photos: uploads and cached copies of listing photos
+IMG_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+VERSION = "2.1"
 
 _lock = threading.Lock()
 
@@ -52,6 +56,29 @@ def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with db() as c:
         model.migrate(c)
+
+
+def cached_image(url):
+    """Local copy of a listing photo, so it still shows once the listing is gone."""
+    if not re.match(r"^https://[\w.-]+/", url):
+        return None
+    key = hashlib.sha1(url.encode()).hexdigest()
+    for ext in IMG_TYPES.values():
+        f = IMG / f"c_{key}{ext}"
+        if f.exists():
+            return f
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (FlipDesk)"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        ctype = r.headers.get_content_type()
+        if ctype not in IMG_TYPES:
+            return None
+        data = r.read(8 * 1024 * 1024 + 1)
+    if len(data) > 8 * 1024 * 1024:
+        return None
+    IMG.mkdir(parents=True, exist_ok=True)
+    f = IMG / f"c_{key}{IMG_TYPES[ctype]}"
+    f.write_bytes(data)
+    return f
 
 
 def now():
@@ -126,7 +153,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        if "Cache-Control" not in (extra or {}):
+            self.send_header("Cache-Control", "no-store")
         self.send_header("Access-Control-Allow-Origin", "*")
         for k, v in (extra or {}).items():
             self.send_header(k, v)
@@ -177,6 +205,22 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True, "version": VERSION})
         if path == "/api/version":
             return self._send(200, version_info())
+        if path == "/api/img":
+            url = self._query().get("u", "")
+            try:
+                f = cached_image(url)
+            except Exception:
+                f = None
+            if not f:
+                return self._err(404, "image indisponible")
+            return self._send(200, f.read_bytes(), "image/" + {"jpg": "jpeg"}.get(f.suffix[1:], f.suffix[1:]),
+                              {"Cache-Control": "max-age=31536000, immutable"})
+        if path.startswith("/img/"):
+            f = (IMG / path[5:]).resolve()
+            if IMG.resolve() not in f.parents or not f.is_file():
+                return self._err(404, "not found")
+            return self._send(200, f.read_bytes(), "image/" + {"jpg": "jpeg"}.get(f.suffix[1:], f.suffix[1:]),
+                              {"Cache-Control": "max-age=31536000, immutable"})
         if path == "/api/data":
             with db() as c:
                 return self._send(200, model.dump(c))
@@ -215,6 +259,16 @@ class Handler(BaseHTTPRequestHandler):
         if not self._guard():
             return
         path = self._path()
+        if path == "/api/upload":  # raw image body -> /img/<name>
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip()
+            n = int(self.headers.get("Content-Length") or 0)
+            if ctype not in IMG_TYPES or not 0 < n <= 15 * 1024 * 1024:
+                return self._err(400, "Image JPEG, PNG, WebP ou GIF de 15 Mo maximum")
+            data = self.rfile.read(n)
+            IMG.mkdir(parents=True, exist_ok=True)
+            name = "u_" + hashlib.sha1(data).hexdigest()[:20] + IMG_TYPES[ctype]
+            (IMG / name).write_bytes(data)
+            return self._send(201, {"url": "/img/" + name})
         try:
             data = self._json_body()
             m = ROUTE.match(path)

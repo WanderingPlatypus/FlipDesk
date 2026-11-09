@@ -102,6 +102,8 @@ def run(c, payload, now):
                     ch["list_price"] = price
                 if not s["url"] and L.get("url"):
                     ch["url"] = L["url"]
+                if not s["photo"] and L.get("photo"):
+                    ch["photo"] = L["photo"]
                 if ch:
                     upd(c, "sales", s["id"], now, **ch)
                     rep["updated"].append(s["name"])
@@ -120,6 +122,8 @@ def run(c, payload, now):
             ch = {"list_price": price} if not r["list_price"] and price else {}
             if not r["url"] and L.get("url"):
                 ch["url"] = L["url"]
+            if not r["photo"] and L.get("photo"):
+                ch["photo"] = L["photo"]
             upd(c, "sales", r["id"], now, **ch)
             rep["updated"].append(r["name"])
             continue
@@ -133,6 +137,7 @@ def run(c, payload, now):
             continue
         new(c, "sales", now, ext, name=L["title"], status="listed", platform=plat, list_price=price,
             list_date=L.get("date") or today, url=L.get("url") or "", condition=L.get("condition") or "",
+            photo=L.get("photo") or "",
             notes=f"Annonce {plat} ajoutée par l'extension")
         rep["created"].append(L["title"])
 
@@ -147,6 +152,8 @@ def run(c, payload, now):
                 upd(c, "sales", s["id"], now, status="listed", date="", price=0)
                 rep["updated"].append(s["name"] + " (vente annulée)")
             continue
+        if s and not s["photo"] and S.get("photo"):
+            upd(c, "sales", s["id"], now, photo=S["photo"])
         if s:
             if s["status"] != "sold":
                 upd(c, "sales", s["id"], now, status="sold", platform=plat, date=S.get("date") or today, price=price)
@@ -164,22 +171,29 @@ def run(c, payload, now):
                                  lambda r: not r["list_price"]])
         if target and target["status"] != "sold":
             add_ext(c, "sales", target["id"], ext)
-            upd(c, "sales", target["id"], now, status="sold", platform=plat, date=S.get("date") or today, price=price)
+            upd(c, "sales", target["id"], now, status="sold", platform=plat, date=S.get("date") or today, price=price,
+                **({"photo": S["photo"]} if S.get("photo") and not target["photo"] else {}))
             rep["sold"].append(target["name"])
             if any(e.startswith(other + ":") for e in exts(target)):
                 rep["warnings"].append(f"« {target['name']} » vendu sur {plat} : pense à retirer l'annonce de l'autre site")
             continue
         new(c, "sales", now, ext, name=S["title"], status="sold", platform=plat,
-            date=S.get("date") or today, price=price, notes=f"Vente {plat} ajoutée par l'extension")
+            date=S.get("date") or today, price=price, photo=S.get("photo") or "",
+            notes=f"Vente {plat} ajoutée par l'extension")
         rep["sold"].append(S["title"])
 
     # ---------- purchases ----------
     for P in payload.get("purchases", []):
         ext = P["ext"]
-        if P.get("cancelled") or ignored(c, ext) or find(c, "purchases", ext):
+        if P.get("cancelled") or ignored(c, ext):
+            continue
+        known = find(c, "purchases", ext)
+        if known:
+            if not known["photo"] and P.get("photo"):
+                upd(c, "purchases", known["id"], now, photo=P["photo"])
             continue
         new(c, "purchases", now, ext, name=P["title"], status="stock", platform=plat,
-            date=P.get("date") or today, price=float(P.get("price") or 0),
+            date=P.get("date") or today, price=float(P.get("price") or 0), photo=P.get("photo") or "",
             notes=f"Achat {plat} ajouté par l'extension" + (f" · {P['note']}" if P.get("note") else ""))
         rep["created"].append(P["title"])
     return rep

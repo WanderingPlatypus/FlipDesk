@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS purchases (
   status TEXT DEFAULT 'stock',
   url TEXT DEFAULT '',
   notes TEXT DEFAULT '',
+  photo TEXT DEFAULT '',
   ext_ids TEXT DEFAULT '',
   created_at TEXT, updated_at TEXT
 );
@@ -38,6 +39,7 @@ CREATE TABLE IF NOT EXISTS sales (
   repair_cost REAL DEFAULT 0,
   url TEXT DEFAULT '',
   notes TEXT DEFAULT '',
+  photo TEXT DEFAULT '',
   ext_ids TEXT DEFAULT '',
   created_at TEXT, updated_at TEXT
 );
@@ -52,10 +54,10 @@ CREATE TABLE IF NOT EXISTS ignored (ext TEXT PRIMARY KEY);
 TXT, NUM = str, float
 FIELDS = {
     "purchases": {"name": TXT, "category": TXT, "platform": TXT, "date": TXT, "price": NUM, "fees": NUM,
-                  "status": TXT, "url": TXT, "notes": TXT},
+                  "status": TXT, "url": TXT, "notes": TXT, "photo": TXT},
     "sales": {"name": TXT, "category": TXT, "condition": TXT, "status": TXT, "platform": TXT,
               "list_price": NUM, "list_date": TXT, "date": TXT, "price": NUM, "fees": NUM,
-              "ship_cost": NUM, "repair_cost": NUM, "url": TXT, "notes": TXT},
+              "ship_cost": NUM, "repair_cost": NUM, "url": TXT, "notes": TXT, "photo": TXT},
 }
 STATUSES = {"purchases": {"stock", "kept", "used"}, "sales": {"listed", "sold"}}
 SALE_EXT = ("vinted:item:", "vinted:tx:", "lbc:ad:", "lbc:tx:")
@@ -274,6 +276,10 @@ def convert_v1(c, items, now):
 
 def migrate(c):
     c.executescript(SCHEMA)
+    for t in ("purchases", "sales"):  # columns added after 2.0
+        cols = {r[1] for r in c.execute(f"PRAGMA table_info({t})")}
+        if "photo" not in cols:
+            c.execute(f"ALTER TABLE {t} ADD COLUMN photo TEXT DEFAULT ''")
     has_v1 = c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='items'").fetchone()
     if has_v1:
         items = [dict(r) for r in c.execute("SELECT * FROM items ORDER BY id")]
